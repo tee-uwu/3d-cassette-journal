@@ -5,7 +5,7 @@ import { audioEngine } from '../services/audioEngine';
 const INITIAL_COLLECTION: Collection = {
   id: 'col-001',
   owner_id: 'user-001',
-  title: 'Personal Studio Archive',
+  title: 'bhoi ka song tapes',
   description: 'Selected acoustic recordings, midnight voice notes, and studio outtakes.',
   share_token: 'tape-studio-master-2026',
   is_public: true,

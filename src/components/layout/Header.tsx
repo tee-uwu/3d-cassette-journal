@@ -181,7 +181,7 @@ export const Header: React.FC = () => {
       {/* Subtitle / Active Collection Info */}
       <div className="text-center mt-1 sm:mt-1.5 pointer-events-auto">
         <h1 className="font-serif-title text-base sm:text-2xl font-medium tracking-tight text-[#3a2f26] leading-tight truncate max-w-xs sm:max-w-md mx-auto">
-          {activeSection === 'cassettes' ? 'Our family tapes' : currentJournal?.title || 'bhoi ka journal'}
+          {activeSection === 'cassettes' ? 'bhoi ka song tapes' : currentJournal?.title || 'bhoi ka journal'}
         </h1>
         <p className="text-[10px] sm:text-xs text-[#7d6e5d] font-medium tracking-wide">
           {countText}
