@@ -11,7 +11,6 @@ import {
   Trash2,
   Volume2,
   VolumeX,
-  BookOpen,
   ArrowLeft,
   SkipBack,
   SkipForward,
@@ -46,7 +45,7 @@ export const FooterControls: React.FC = () => {
     setShareModalOpen,
     journals,
     activeJournalIndex,
-    setSelectedJournalId,
+    selectedJournalId,
     setCreateJournalModalOpen,
     setEditJournalModalOpen,
     deleteJournal,
@@ -58,6 +57,11 @@ export const FooterControls: React.FC = () => {
   const currentTape = tapes[activeTapeIndex] || tapes[0];
   const currentJournal = journals[activeJournalIndex] || journals[0];
   const isTapeSelected = !!selectedTapeId;
+
+  // Prevent duplicate footer overlay when journal reader is open
+  if (activeSection === 'journals' && selectedJournalId) {
+    return null;
+  }
 
   const formatTime = (secs: number) => {
     if (isNaN(secs) || secs < 0) return '0:00';
@@ -300,63 +304,50 @@ export const FooterControls: React.FC = () => {
             )
           ) : (
             /* PAPER FOR iOS AUTHENTIC 4-BUTTON DOCK (Image 3) */
-            <div className="flex flex-col items-center">
-              {/* Tap to open affordance */}
+            <div className="flex items-center gap-4 sm:gap-6">
+              {/* 1. More / Edit Journal */}
               <button
-                onClick={() => setSelectedJournalId(currentJournal?.id || null)}
-                className="mb-3 px-4 py-1.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/25 text-white text-xs font-medium backdrop-blur-md transition-all active:scale-95 flex items-center gap-2 shadow-lg"
-                title={`Open ${currentJournal?.title || 'Journal'}`}
+                onClick={() => setEditJournalModalOpen(true, currentJournal?.id)}
+                className="paper-action-btn"
+                title="Journal Options & Cover Style"
               >
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>Tap to Open Spread</span>
+                <MoreHorizontal className="w-5 h-5 text-[#2b2b2b]" />
               </button>
 
-              {/* The 4 Signature White Circular Action Buttons */}
-              <div className="flex items-center gap-4 sm:gap-6">
-                {/* 1. More / Edit Journal */}
-                <button
-                  onClick={() => setEditJournalModalOpen(true, currentJournal?.id)}
-                  className="paper-action-btn"
-                  title="Journal Options & Cover Style"
-                >
-                  <MoreHorizontal className="w-5 h-5 text-[#2b2b2b]" />
-                </button>
+              {/* 2. Share Journal */}
+              <button
+                onClick={() => setShareModalOpen(true)}
+                className="paper-action-btn"
+                title="Share Collection / Journal"
+              >
+                <Share className="w-4.5 h-4.5 text-[#2b2b2b]" />
+              </button>
 
-                {/* 2. Share Journal */}
-                <button
-                  onClick={() => setShareModalOpen(true)}
-                  className="paper-action-btn"
-                  title="Share Collection / Journal"
-                >
-                  <Share className="w-4.5 h-4.5 text-[#2b2b2b]" />
-                </button>
+              {/* 3. Delete Journal */}
+              <button
+                onClick={() => {
+                  if (journals.length <= 1) {
+                    alert('You must keep at least one journal in your collection.');
+                    return;
+                  }
+                  if (currentJournal && window.confirm(`Delete "${currentJournal.title}"?`)) {
+                    deleteJournal(currentJournal.id);
+                  }
+                }}
+                className="paper-action-btn hover:text-red-600"
+                title="Delete this journal"
+              >
+                <Trash2 className="w-4.5 h-4.5 text-[#2b2b2b] hover:text-red-600 transition-colors" />
+              </button>
 
-                {/* 3. Delete Journal */}
-                <button
-                  onClick={() => {
-                    if (journals.length <= 1) {
-                      alert('You must keep at least one journal in your collection.');
-                      return;
-                    }
-                    if (currentJournal && window.confirm(`Delete "${currentJournal.title}"?`)) {
-                      deleteJournal(currentJournal.id);
-                    }
-                  }}
-                  className="paper-action-btn hover:text-red-600"
-                  title="Delete this journal"
-                >
-                  <Trash2 className="w-4.5 h-4.5 text-[#2b2b2b] hover:text-red-600 transition-colors" />
-                </button>
-
-                {/* 4. Add New Journal */}
-                <button
-                  onClick={() => setCreateJournalModalOpen(true)}
-                  className="paper-action-btn"
-                  title="Create New Journal"
-                >
-                  <Plus className="w-5 h-5 text-[#2b2b2b]" />
-                </button>
-              </div>
+              {/* 4. Add New Journal */}
+              <button
+                onClick={() => setCreateJournalModalOpen(true)}
+                className="paper-action-btn"
+                title="Create New Journal"
+              >
+                <Plus className="w-5 h-5 text-[#2b2b2b]" />
+              </button>
             </div>
           )}
         </div>

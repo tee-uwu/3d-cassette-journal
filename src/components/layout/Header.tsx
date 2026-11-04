@@ -6,6 +6,7 @@ export const Header: React.FC = () => {
   const {
     activeSection,
     setActiveSection,
+    selectedJournalId,
     tapes,
     journals,
     activeJournalIndex,
@@ -24,10 +25,15 @@ export const Header: React.FC = () => {
   const currentJournal = journals[activeJournalIndex] || journals[0];
   const isJournalMode = activeSection === 'journals';
 
+  // Prevent duplicate header overlay when journal reader is open
+  if (isJournalMode && selectedJournalId) {
+    return null;
+  }
+
   const countText =
     activeSection === 'cassettes'
       ? `${tapes.length} recording${tapes.length === 1 ? '' : 's'}`
-      : `${currentJournal?.pages?.length || 6} Pages`;
+      : `${currentJournal?.pages?.length || 7} Pages`;
 
   return (
     <header className="absolute top-0 left-0 right-0 z-30 px-3 sm:px-6 pt-[max(0.6rem,env(safe-area-inset-top))] pb-1 sm:pb-2 flex flex-col pointer-events-none select-none">

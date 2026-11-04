@@ -81,76 +81,92 @@ export const JournalModel: React.FC<JournalModelProps> = ({
     });
   }, []);
 
-  // Cover label canvas (400x400)
+  // Full-bleed Cover Texture (Seamless front face, no floating sticker patch)
   const coverTexture = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 400;
-    canvas.height = 400;
+    canvas.height = 550;
     const ctx = canvas.getContext('2d');
     if (!ctx) return new THREE.CanvasTexture(canvas);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
 
-    const render = (img?: HTMLImageElement) => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#f4ecda';
-      ctx.fillRect(0, 0, 400, 400);
+    // 1. Rich Leather Background
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(0, 0, 400, 550);
 
-      const hasImg = img && img.naturalWidth;
-      if (hasImg) {
-        const w = 360;
-        const h = 270;
-        const k = Math.max(w / img.naturalWidth, h / img.naturalHeight);
-        const iw = img.naturalWidth * k;
-        const ih = img.naturalHeight * k;
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(20, 20, w, h);
-        ctx.clip();
-        ctx.drawImage(img, 20 + (w - iw) / 2, 20 + (h - ih) / 2, iw, ih);
-        ctx.restore();
-      } else {
-        ctx.fillStyle = 'rgba(60,45,30,0.12)';
-        ctx.fillRect(20, 20, 360, 270);
-      }
+    // Subtle leather shading vignette
+    const grad = ctx.createLinearGradient(0, 0, 400, 0);
+    grad.addColorStop(0, 'rgba(0,0,0,0.22)');
+    grad.addColorStop(0.08, 'rgba(0,0,0,0.05)');
+    grad.addColorStop(0.9, 'rgba(0,0,0,0.02)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.25)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 400, 550);
 
-      ctx.fillStyle = '#3b2f25';
-      ctx.textAlign = 'center';
-      ctx.font = '700 56px Caveat, "Anek Bangla", "Noto Sans Bengali", "Segoe Print", cursive, sans-serif';
-      ctx.fillText(journal.title, 200, 350, 340);
-      ctx.font = '700 30px Caveat, "Anek Bangla", "Noto Sans Bengali", cursive, sans-serif';
-      const pageCount = journal.pages?.length || 7;
-      const dateText = `${pageCount} pages · 2026`;
-      ctx.fillText(dateText, 200, 385);
+    // 2. Refined Debossed Gold Foil Border Frame
+    ctx.strokeStyle = 'rgba(216, 162, 94, 0.38)';
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(24, 24, 352, 502);
 
-      texture.needsUpdate = true;
-    };
+    ctx.strokeStyle = 'rgba(216, 162, 94, 0.18)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(30, 30, 340, 490);
 
-    const firstPageBg = journal.cover_photo || journal.pages?.[0]?.photo_url || journal.pages?.[0]?.sketch_data;
-    if (firstPageBg && (firstPageBg.startsWith('data:') || firstPageBg.startsWith('http') || firstPageBg.startsWith('/'))) {
-      const img = new Image();
-      img.onload = () => render(img);
-      img.src = firstPageBg;
-    } else {
-      render();
-    }
+    // 3. Gold-foil Debossed Typography
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#d8a25e';
 
+    // Top emblem / ornament
+    ctx.font = '18px serif';
+    ctx.fillText('✦   ✦   ✦', 200, 180);
+
+    // Title
+    ctx.font = '700 34px "Playfair Display", Georgia, serif';
+    ctx.fillText(journal.title, 200, 245, 310);
+
+    // Divider line
+    ctx.beginPath();
+    ctx.moveTo(140, 275);
+    ctx.lineTo(260, 275);
+    ctx.strokeStyle = 'rgba(216, 162, 94, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Subtitle
+    ctx.font = '500 15px "Inter", -apple-system, sans-serif';
+    ctx.fillStyle = 'rgba(216, 162, 94, 0.8)';
+    const pageCount = journal.pages?.length || 7;
+    ctx.fillText(`${pageCount} ARCHIVAL SPREADS`, 200, 310);
+
+    // Year stamp
+    ctx.font = '500 13px "Inter", -apple-system, sans-serif';
+    ctx.fillStyle = 'rgba(216, 162, 94, 0.55)';
+    ctx.fillText('M M X X V I', 200, 340);
+
+    texture.needsUpdate = true;
     return texture;
-  }, [journal.title, journal.pages, journal.cover_photo]);
+  }, [baseColor, journal.title, journal.pages]);
 
   const labelMaterial = useMemo(() => {
     return new THREE.MeshStandardMaterial({
       map: coverTexture,
-      roughness: 0.9,
+      roughness: 0.85,
     });
   }, [coverTexture]);
 
   return (
     <group
       onClick={onClick}
-      onPointerOver={onPointerOver}
-      onPointerOut={onPointerOut}
+      onPointerOver={(e) => {
+        document.body.style.cursor = 'pointer';
+        onPointerOver?.(e);
+      }}
+      onPointerOut={(e) => {
+        document.body.style.cursor = 'auto';
+        onPointerOut?.(e);
+      }}
     >
       {/* 1. Main Cover: 1.55 x 2.05 x 0.26 */}
       <mesh material={coverMaterial}>
@@ -167,17 +183,17 @@ export const JournalModel: React.FC<JournalModelProps> = ({
         <boxGeometry args={[0.1, 2.07, 0.28]} />
       </mesh>
 
-      {/* 4. Elastic Band: 0.05 x 2.07 x 0.275 at [0.55, 0, 0] */}
-      <mesh position={[0.55, 0, 0]} material={bandMaterial}>
+      {/* 4. Seamless Front Cover Face (Fills full front between spine and edge) */}
+      <mesh position={[0.03, 0, 0.131]} material={labelMaterial}>
+        <planeGeometry args={[1.44, 1.98]} />
+      </mesh>
+
+      {/* 5. Elastic Band: 0.05 x 2.07 x 0.275 at [0.55, 0, 0] */}
+      <mesh position={[0.55, 0, 0.002]} material={bandMaterial}>
         <boxGeometry args={[0.05, 2.07, 0.275]} />
       </mesh>
 
-      {/* 5. Cover Label: 1.2 x 1.2 at [-0.08, 0.18, 0.132] */}
-      <mesh position={[-0.08, 0.18, 0.132]} material={labelMaterial}>
-        <planeGeometry args={[1.2, 1.2]} />
-      </mesh>
-
-      {/* 6. Soft Blob Shadow: 2.8 x 3.3 at [0.08, -0.12, -0.22] */}
+      {/* 6. Soft Ground Drop Shadow underneath */}
       <mesh position={[0.08, -0.12, -0.22]} material={blobShadowMaterial}>
         <planeGeometry args={[2.8, 3.3]} />
       </mesh>

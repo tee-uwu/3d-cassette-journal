@@ -311,7 +311,7 @@ interface TapeStore {
 
 const STORAGE_KEY_TAPES = 'tape_collection_tapes_v4';
 const STORAGE_KEY_COL = 'tape_collection_metadata_v4';
-const STORAGE_KEY_JOURNALS = 'tape_collection_journals_v7';
+const STORAGE_KEY_JOURNALS = 'tape_collection_journals_v11';
 const STORAGE_KEY_THEME = 'tape_collection_gallery_theme_v1';
 const STORAGE_KEY_GLASS = 'tape_collection_glass_style_v1';
 const STORAGE_KEY_SHELF = 'tape_collection_shelf_material_v1';
@@ -343,13 +343,12 @@ export const useTapeStore = create<TapeStore>((set, get) => {
 
   const initialCol = savedCol ? JSON.parse(savedCol) : INITIAL_COLLECTION;
 
-  let initialJournals: Journal[] = INITIAL_JOURNALS;
+  let initialJournals: Journal[] = [INITIAL_JOURNALS[0]];
   if (savedJournals) {
     try {
       const parsed = JSON.parse(savedJournals);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        const hasBhoi = parsed.some((j: Journal) => j.id === 'journal-bhoi-ka');
-        initialJournals = hasBhoi ? parsed : [INITIAL_JOURNALS[0], ...parsed];
+        initialJournals = [parsed[0]];
       }
     } catch {}
   }
