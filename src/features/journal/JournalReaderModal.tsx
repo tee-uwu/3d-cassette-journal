@@ -109,6 +109,10 @@ export const JournalReaderModal: React.FC = () => {
 
   const [currentPage, setCurrentPage] = useState<number>(activeJournalPage || 0);
 
+  // 3D Physical Opening & Closing States
+  const [isOpening, setIsOpening] = useState<boolean>(true);
+  const [isClosing, setIsClosing] = useState<boolean>(false);
+
   // UI Modes
   const [isGridViewOpen, setIsGridViewOpen] = useState<boolean>(false);
   const [isAddPageModalOpen, setIsAddPageModalOpen] = useState<boolean>(false);
@@ -134,6 +138,33 @@ export const JournalReaderModal: React.FC = () => {
   const touchStartY = useRef<number | null>(null);
   const touchStartTime = useRef<number>(0);
   const isHorizontalSwipe = useRef<boolean | null>(null);
+
+  // Trigger tactile opening animation & audio whenever book is opened
+  useEffect(() => {
+    if (selectedJournalId) {
+      setIsOpening(true);
+      setIsClosing(false);
+      audioEngine.playPageFlipSound();
+
+      const timer = setTimeout(() => {
+        setIsOpening(false);
+      }, 660);
+
+      return () => clearTimeout(timer);
+    }
+  }, [selectedJournalId]);
+
+  // Smooth physical close transition back to shelf
+  const handleCloseBook = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    audioEngine.playPageFlipSound();
+
+    setTimeout(() => {
+      setSelectedJournalId(null);
+      setIsClosing(false);
+    }, 450);
+  }, [isClosing, setSelectedJournalId]);
 
   // Show quick toast message
   const showToast = useCallback((msg: string) => {
@@ -174,7 +205,7 @@ export const JournalReaderModal: React.FC = () => {
   // Turn page programmatically (tap Next / Prev / arrow keys / fanned stacks)
   const turnPage = useCallback(
     (targetIndex: number) => {
-      if (isFlipping || isDragging) return;
+      if (isFlipping || isDragging || isOpening || isClosing) return;
       if (targetIndex === currentPage) return;
       if (targetIndex < 0 || targetIndex >= pages.length) return;
 
@@ -190,7 +221,6 @@ export const JournalReaderModal: React.FC = () => {
       setFlipDirection(direction);
       setIsFlipping(true);
 
-      // 440ms match for the refined 3D physics animation
       const timer = setTimeout(() => {
         setCurrentPage(targetIndex);
         setActiveJournalPage(targetIndex);
@@ -200,7 +230,7 @@ export const JournalReaderModal: React.FC = () => {
 
       return () => clearTimeout(timer);
     },
-    [currentPage, isFlipping, isDragging, pages.length, setActiveJournalPage]
+    [currentPage, isFlipping, isDragging, isOpening, isClosing, pages.length, setActiveJournalPage]
   );
 
   const handleNext = useCallback(() => {
@@ -232,14 +262,14 @@ export const JournalReaderModal: React.FC = () => {
         if (isGridViewOpen) {
           setIsGridViewOpen(false);
         } else {
-          setSelectedJournalId(null);
+          handleCloseBook();
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedJournalId, handleNext, handlePrev, setSelectedJournalId, isGridViewOpen, isAddPageModalOpen, isDeleteConfirmOpen]);
+  }, [selectedJournalId, handleNext, handlePrev, handleCloseBook, isGridViewOpen, isAddPageModalOpen, isDeleteConfirmOpen]);
 
   // ============================================================
   // UNIFIED POINTER GESTURE ENGINE (Mouse & Touch Real-Time 3D Leaf Rotation)
@@ -247,7 +277,7 @@ export const JournalReaderModal: React.FC = () => {
   const isPointerActive = useRef<boolean>(false);
 
   const handlePointerStart = (clientX: number, clientY: number) => {
-    if (isFlipping || isGridViewOpen) return;
+    if (isFlipping || isGridViewOpen || isOpening || isClosing) return;
     touchStartX.current = clientX;
     touchStartY.current = clientY;
     touchStartTime.current = performance.now();
@@ -259,7 +289,7 @@ export const JournalReaderModal: React.FC = () => {
   };
 
   const handlePointerMove = (clientX: number, clientY: number) => {
-    if (!isPointerActive.current || touchStartX.current === null || touchStartY.current === null || isFlipping || isGridViewOpen) return;
+    if (!isPointerActive.current || touchStartX.current === null || touchStartY.current === null || isFlipping || isGridViewOpen || isOpening || isClosing) return;
     const deltaX = clientX - touchStartX.current;
     const deltaY = clientY - touchStartY.current;
 
@@ -287,11 +317,9 @@ export const JournalReaderModal: React.FC = () => {
       const halfWidth = (containerRef.current?.offsetWidth || 360) * 0.5;
 
       if (dragDirection === 'next') {
-        // Dragging left: angle goes from 0deg down to -180deg
         const progress = Math.max(-1, Math.min(0, deltaX / halfWidth));
         setDragAngle(progress * 180);
       } else if (dragDirection === 'prev') {
-        // Dragging right: angle goes from -180deg up to 0deg
         const progress = Math.min(1, Math.max(0, deltaX / halfWidth));
         setDragAngle(-180 + progress * 180);
       }
@@ -356,7 +384,7 @@ export const JournalReaderModal: React.FC = () => {
         }
       }
     } else if (!isDragging && Math.hypot(diffX, diffY) < 12) {
-      // Tap detection
+      // Tap detection on spread halves
       const rect = containerRef.current?.getBoundingClientRect();
       if (rect) {
         const relX = (clientX - rect.left) / rect.width;
@@ -447,11 +475,54 @@ export const JournalReaderModal: React.FC = () => {
     }, 200);
   };
 
+  // ============================================================
+  // AUTHENTIC SADDLE LEATHER COVER RENDERERS
+  // ============================================================
+  const renderFrontCoverContent = () => (
+    <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-[#7e5538] via-[#65432a] to-[#4e321e] border border-[#9d724f]/40 shadow-2xl overflow-hidden flex flex-col items-center justify-center p-5 sm:p-7 select-none">
+      {/* Leather Grain Overlay */}
+      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:12px_12px] pointer-events-none" />
+
+      {/* Spine Crease / Binding Line on Left */}
+      <div className="absolute top-0 bottom-0 left-0 w-7 bg-gradient-to-r from-black/45 via-black/10 to-transparent pointer-events-none border-r border-white/10" />
+
+      {/* Dark Elastic Band on Right */}
+      <div className="absolute top-0 bottom-0 right-6 sm:right-9 w-4 sm:w-5 bg-[#2a1d13] shadow-[inset_0_0_4px_rgba(0,0,0,0.8),2px_0_6px_rgba(0,0,0,0.4)] pointer-events-none" />
+
+      {/* Center Polaroid Artwork Label */}
+      <div className="relative z-10 w-[78%] max-w-[270px] bg-[#f5eedb] p-3 sm:p-4 rounded-sm shadow-[0_12px_30px_rgba(0,0,0,0.45)] border border-[#d8caa8] flex flex-col items-center transform -rotate-0.5">
+        <div className="w-full aspect-[4/3] rounded-xs overflow-hidden bg-[#e0d6c3] shadow-inner mb-2.5">
+          <img
+            src="/journal/page-1.jpg"
+            alt="Cover artwork"
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <h3 className="font-['Caveat',cursive] text-2xl sm:text-3xl font-bold text-[#352518] leading-tight text-center tracking-wide">
+          {journal.title || 'bhoi ka journal'}
+        </h3>
+        <p className="font-['Caveat',cursive] text-sm sm:text-base font-semibold text-[#6d513a] mt-0.5 text-center">
+          {pages.length} pages · 2026
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderBackCoverContent = () => (
+    <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-[#7e5538] via-[#65432a] to-[#4e321e] border border-[#9d724f]/40 shadow-2xl overflow-hidden flex items-center justify-center p-6 select-none">
+      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:12px_12px] pointer-events-none" />
+      <div className="absolute top-0 bottom-0 right-0 w-7 bg-gradient-to-l from-black/45 via-black/10 to-transparent pointer-events-none border-l border-white/10" />
+      <div className="text-center text-white/30 font-['Caveat',cursive] text-lg sm:text-xl">
+        bhoi ka journal
+      </div>
+    </div>
+  );
+
   if (!selectedJournalId || !journal) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col justify-between paper-ios-bg text-[#FFFFFF] animate-in fade-in duration-300 select-none overflow-hidden"
+      className="fixed inset-0 z-50 flex flex-col justify-between paper-ios-bg text-[#FFFFFF] select-none overflow-hidden"
       onClick={() => {
         if (isGridViewOpen) setIsGridViewOpen(false);
       }}
@@ -467,11 +538,15 @@ export const JournalReaderModal: React.FC = () => {
       {/* ============================================================ */}
       {/* 1. PAPER FOR iOS TOP HEADER */}
       {/* ============================================================ */}
-      <header className="w-full px-4 sm:px-8 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 flex items-center justify-between z-40 flex-shrink-0">
+      <header
+        className={`w-full px-4 sm:px-8 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 flex items-center justify-between z-40 flex-shrink-0 transition-opacity duration-300 ${
+          isOpening || isClosing ? 'opacity-0' : 'opacity-100'
+        }`}
+      >
         {/* Left: Close Book & Grid View Buttons */}
         <div className="flex items-center gap-2.5 sm:gap-3">
           <button
-            onClick={() => setSelectedJournalId(null)}
+            onClick={handleCloseBook}
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-white/20 bg-white/10 hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center text-white/90 shadow-sm"
             title="Close Journal to Shelf (Esc)"
           >
@@ -521,7 +596,7 @@ export const JournalReaderModal: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setSelectedJournalId(null)}
+            onClick={handleCloseBook}
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-white/20 bg-white/10 hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center text-white/90 shadow-sm"
             title="Close (Esc)"
           >
@@ -531,18 +606,18 @@ export const JournalReaderModal: React.FC = () => {
       </header>
 
       {/* ============================================================ */}
-      {/* 2. CLEAN FOCUSED SPREAD (Only Active Page Content) */}
+      {/* 2. PHYSICAL 3D SKETCHBOOK STAGE */}
       {/* ============================================================ */}
       <main className="flex-1 w-full flex items-center justify-center relative px-2 sm:px-6 overflow-hidden min-h-0">
         {/* Soft Ambient Studio Downlight */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(255,255,255,0.06)_0%,transparent_70%)] pointer-events-none" />
 
-        {/* ============================================================ */}
-        {/* 3D BOOK STAGE CONTAINER WITH PERSPECTIVE */}
-        {/* ============================================================ */}
+        {/* 3D BOOK PERSPECTIVE STAGE */}
         <div
           ref={containerRef}
-          className="book-perspective relative w-full max-w-4xl h-[62vh] sm:h-[68vh] flex items-center justify-center select-none"
+          className={`book-perspective relative w-full max-w-4xl h-[62vh] sm:h-[68vh] flex items-center justify-center select-none ${
+            isOpening ? 'anim-book-open' : isClosing ? 'anim-book-close' : ''
+          }`}
           onTouchStart={(e) => handlePointerStart(e.touches[0].clientX, e.touches[0].clientY)}
           onTouchMove={(e) => handlePointerMove(e.touches[0].clientX, e.touches[0].clientY)}
           onTouchEnd={(e) => handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY)}
@@ -550,20 +625,178 @@ export const JournalReaderModal: React.FC = () => {
           onMouseMove={(e) => handlePointerMove(e.clientX, e.clientY)}
           onMouseUp={(e) => handlePointerEnd(e.clientX, e.clientY)}
         >
-          {/* Ambient Ground Shadow under the book */}
+          {/* Ambient Ground Shadow under the open book */}
           <div className="absolute -bottom-8 w-[88%] h-14 bg-black/75 blur-2xl rounded-full pointer-events-none" />
 
           {/* ============================================================ */}
-          {/* ACTIVE CENTER SPREAD CONTAINER (Only current page content visible) */}
+          {/* A. LEFT FANNED ACCORDION STACK (Receding in 3D to the left) */}
           {/* ============================================================ */}
-          <div
-            className="book-spread-container relative w-[86vw] max-w-3xl aspect-[1.42/1] rounded-xl sm:rounded-2xl bg-[#faf5ec] shadow-[0_28px_65px_-12px_rgba(0,0,0,0.75)] z-20 overflow-hidden"
-          >
+          {!isOpening && !isClosing && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              {/* Previous page leaves (from currentPage - 1 down to 0) */}
+              {Array.from({ length: currentPage }).map((_, i) => {
+                const pageIdx = currentPage - 1 - i;
+                if (i >= 4) return null; // Show up to 4 previous leaves in fan
+                const offset = i + 1;
+                const zIndex = 18 - offset;
+                const tx = -(offset * 30 + 16);
+                const tz = -(offset * 34 + 18);
+                const ry = -(11 + offset * 2.6);
+
+                return (
+                  <div
+                    key={`left-leaf-${pageIdx}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      turnPage(pageIdx);
+                    }}
+                    title={`Turn back to Spread ${pageIdx + 1}`}
+                    className="paper-fan-item absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto bg-[#faf5ec] shadow-[-16px_18px_38px_rgba(0,0,0,0.55)] border border-black/20"
+                    style={{
+                      zIndex,
+                      transform: `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
+                      transformOrigin: 'right center',
+                    }}
+                  >
+                    <img
+                      src={getPageImage(pageIdx)}
+                      alt={getPageTitle(pageIdx)}
+                      className="w-full h-full object-cover pointer-events-none"
+                    />
+                    {/* Depth Shading Overlay */}
+                    <div
+                      className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/25 to-black/45 pointer-events-none"
+                      style={{ opacity: Math.min(0.85, 0.35 + offset * 0.12) }}
+                    />
+                  </div>
+                );
+              })}
+
+              {/* Front Cover Leaf (Always fanned at the very outer edge of the left fan) */}
+              {(() => {
+                const leftLeavesCount = Math.min(4, currentPage);
+                const coverOffset = leftLeavesCount + 1;
+                const zIndex = 18 - coverOffset;
+                const tx = -(coverOffset * 30 + 18);
+                const tz = -(coverOffset * 34 + 22);
+                const ry = -(12 + coverOffset * 2.6);
+
+                return (
+                  <div
+                    key="left-front-cover"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (currentPage > 0) turnPage(0);
+                    }}
+                    title={currentPage > 0 ? 'Turn to Spread 1' : 'Front Cover'}
+                    className="paper-fan-item absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto shadow-[-18px_20px_42px_rgba(0,0,0,0.65)] border border-[#9d724f]/40"
+                    style={{
+                      zIndex,
+                      transform: `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
+                      transformOrigin: 'right center',
+                    }}
+                  >
+                    {renderFrontCoverContent()}
+                    {/* Depth Shading */}
+                    <div
+                      className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-black/40 pointer-events-none"
+                      style={{ opacity: Math.min(0.85, 0.4 + coverOffset * 0.1) }}
+                    />
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* ============================================================ */}
+          {/* B. RIGHT FANNED ACCORDION STACK (Receding in 3D to the right) */}
+          {/* ============================================================ */}
+          {!isOpening && !isClosing && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              {/* Next page leaves (from currentPage + 1 up to pages.length - 1) */}
+              {Array.from({ length: Math.max(0, pages.length - 1 - currentPage) }).map((_, i) => {
+                const pageIdx = currentPage + 1 + i;
+                if (i >= 4) return null; // Show up to 4 upcoming leaves in fan
+                const offset = i + 1;
+                const zIndex = 18 - offset;
+                const tx = offset * 30 + 16;
+                const tz = -(offset * 34 + 18);
+                const ry = 11 + offset * 2.6;
+
+                return (
+                  <div
+                    key={`right-leaf-${pageIdx}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      turnPage(pageIdx);
+                    }}
+                    title={`Turn to Spread ${pageIdx + 1}`}
+                    className="paper-fan-item absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto bg-[#faf5ec] shadow-[16px_18px_38px_rgba(0,0,0,0.55)] border border-black/20"
+                    style={{
+                      zIndex,
+                      transform: `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
+                      transformOrigin: 'left center',
+                    }}
+                  >
+                    <img
+                      src={getPageImage(pageIdx)}
+                      alt={getPageTitle(pageIdx)}
+                      className="w-full h-full object-cover pointer-events-none"
+                    />
+                    {/* Depth Shading Overlay */}
+                    <div
+                      className="absolute inset-0 bg-gradient-to-l from-black/60 via-black/25 to-black/45 pointer-events-none"
+                      style={{ opacity: Math.min(0.85, 0.35 + offset * 0.12) }}
+                    />
+                  </div>
+                );
+              })}
+
+              {/* Back Cover Leaf (Always fanned at the very outer edge of the right fan) */}
+              {(() => {
+                const rightLeavesCount = Math.min(4, Math.max(0, pages.length - 1 - currentPage));
+                const coverOffset = rightLeavesCount + 1;
+                const zIndex = 18 - coverOffset;
+                const tx = coverOffset * 30 + 18;
+                const tz = -(coverOffset * 34 + 22);
+                const ry = 12 + coverOffset * 2.6;
+
+                return (
+                  <div
+                    key="right-back-cover"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (currentPage < pages.length - 1) turnPage(pages.length - 1);
+                    }}
+                    title={currentPage < pages.length - 1 ? `Turn to Spread ${pages.length}` : 'Back Cover'}
+                    className="paper-fan-item absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto shadow-[18px_20px_42px_rgba(0,0,0,0.65)] border border-[#9d724f]/40"
+                    style={{
+                      zIndex,
+                      transform: `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
+                      transformOrigin: 'left center',
+                    }}
+                  >
+                    {renderBackCoverContent()}
+                    {/* Depth Shading */}
+                    <div
+                      className="absolute inset-0 bg-gradient-to-l from-black/55 via-black/20 to-black/40 pointer-events-none"
+                      style={{ opacity: Math.min(0.85, 0.4 + coverOffset * 0.1) }}
+                    />
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* ============================================================ */}
+          {/* C. ACTIVE CENTER SPREAD CONTAINER (100% OPAQUE - No Layover) */}
+          {/* ============================================================ */}
+          <div className="book-spread-container relative w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl bg-[#faf5ec] shadow-[0_28px_65px_-12px_rgba(0,0,0,0.75)] z-20 overflow-hidden">
             {/* Center spine seam depression */}
             <div className="paper-spine-crease" />
 
             {/* Left & Right Interactive Click/Tap Turn Zones */}
-            {!isFlipping && !isDragging && (
+            {!isFlipping && !isDragging && !isOpening && !isClosing && (
               <>
                 <div
                   className="absolute top-0 bottom-0 left-0 w-1/4 z-30 cursor-pointer flex items-center justify-start pl-3 group"
@@ -591,7 +824,7 @@ export const JournalReaderModal: React.FC = () => {
             )}
 
             {/* ============================================================ */}
-            {/* VIEW A: STATIC RESTING VIEW (Idle) */}
+            {/* VIEW 1: STATIC RESTING SPREAD (Only Current Page Content) */}
             {/* ============================================================ */}
             {!isFlipping && !isDragging && (
               <div className="relative w-full h-full flex select-none">
@@ -600,13 +833,13 @@ export const JournalReaderModal: React.FC = () => {
                   alt={getPageTitle(currentPage)}
                   className="w-full h-full object-cover pointer-events-none"
                 />
-                {/* Subtle paper fiber texture overlay */}
+                {/* Subtle warm paper texture fiber */}
                 <div className="absolute inset-0 bg-[#f7f0df]/8 mix-blend-multiply pointer-events-none" />
               </div>
             )}
 
             {/* ============================================================ */}
-            {/* VIEW B: REAL-TIME TOUCH DRAGGING IN 3D */}
+            {/* VIEW 2: REAL-TIME TOUCH DRAGGING IN 3D */}
             {/* ============================================================ */}
             {isDragging && dragDirection && (
               <div className="relative w-full h-full flex select-none">
@@ -652,7 +885,7 @@ export const JournalReaderModal: React.FC = () => {
                         : `-${Math.abs(dragAngle) * 0.25}px 8px 30px rgba(25, 15, 8, 0.4)`,
                   }}
                 >
-                  {/* FRONT FACE: Current right page */}
+                  {/* FRONT FACE */}
                   <div className="book-leaf-front">
                     <img
                       src={getPageImage(dragDirection === 'next' ? fromPage : toPage)}
@@ -665,7 +898,7 @@ export const JournalReaderModal: React.FC = () => {
                     />
                   </div>
 
-                  {/* BACK FACE: Destination left page */}
+                  {/* BACK FACE */}
                   <div className="book-leaf-back">
                     <img
                       src={getPageImage(dragDirection === 'next' ? toPage : fromPage)}
@@ -682,7 +915,7 @@ export const JournalReaderModal: React.FC = () => {
             )}
 
             {/* ============================================================ */}
-            {/* VIEW C: PROGRAMMATIC 3D FLIP FORWARD (Next Spread) */}
+            {/* VIEW 3: PROGRAMMATIC 3D FLIP FORWARD (Next Spread) */}
             {/* ============================================================ */}
             {isFlipping && flipDirection === 'next' && (
               <div className="relative w-full h-full flex select-none">
@@ -695,7 +928,7 @@ export const JournalReaderModal: React.FC = () => {
                   />
                 </div>
 
-                {/* BASE RIGHT HALF: With dissolving shadow */}
+                {/* BASE RIGHT HALF */}
                 <div className="relative w-1/2 h-full overflow-hidden">
                   <img
                     src={getPageImage(toPage)}
@@ -707,7 +940,6 @@ export const JournalReaderModal: React.FC = () => {
 
                 {/* 3D TURNING LEAF (0deg -> -180deg) */}
                 <div className="book-leaf-turning anim-flip-forward">
-                  {/* FRONT FACE */}
                   <div className="book-leaf-front">
                     <img
                       src={getPageImage(fromPage)}
@@ -716,8 +948,6 @@ export const JournalReaderModal: React.FC = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-black/35 anim-sheen-forward pointer-events-none" />
                   </div>
-
-                  {/* BACK FACE */}
                   <div className="book-leaf-back">
                     <img
                       src={getPageImage(toPage)}
@@ -731,7 +961,7 @@ export const JournalReaderModal: React.FC = () => {
             )}
 
             {/* ============================================================ */}
-            {/* VIEW D: PROGRAMMATIC 3D FLIP BACKWARD (Previous Spread) */}
+            {/* VIEW 4: PROGRAMMATIC 3D FLIP BACKWARD (Previous Spread) */}
             {/* ============================================================ */}
             {isFlipping && flipDirection === 'prev' && (
               <div className="relative w-full h-full flex select-none">
@@ -756,7 +986,6 @@ export const JournalReaderModal: React.FC = () => {
 
                 {/* 3D TURNING LEAF (-180deg -> 0deg) */}
                 <div className="book-leaf-turning anim-flip-backward">
-                  {/* BACK FACE */}
                   <div className="book-leaf-back">
                     <img
                       src={getPageImage(fromPage)}
@@ -765,8 +994,6 @@ export const JournalReaderModal: React.FC = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-l from-transparent via-white/40 to-black/35 anim-sheen-backward pointer-events-none" />
                   </div>
-
-                  {/* FRONT FACE */}
                   <div className="book-leaf-front">
                     <img
                       src={getPageImage(toPage)}
@@ -778,6 +1005,71 @@ export const JournalReaderModal: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* ============================================================ */}
+            {/* D. 3D FRONT COVER HINGING ELEMENT (When opening from / closing to shelf) */}
+            {/* ============================================================ */}
+            {(isOpening || isClosing) && (
+              <div
+                className={`absolute top-0 left-1/2 w-1/2 h-full z-40 ${
+                  isOpening ? 'anim-cover-open' : 'anim-cover-close'
+                }`}
+                style={{
+                  transformStyle: 'preserve-3d',
+                  WebkitTransformStyle: 'preserve-3d',
+                }}
+              >
+                {/* FRONT FACE: Outside Saddle Leather with Polaroid label & elastic band */}
+                <div
+                  className="absolute inset-0 rounded-r-2xl overflow-hidden shadow-2xl"
+                  style={{
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                  }}
+                >
+                  <div className="relative w-full h-full bg-gradient-to-br from-[#7e5538] via-[#65432a] to-[#4e321e] border-y border-r border-[#9d724f]/40 p-4 sm:p-6 flex flex-col items-center justify-center select-none">
+                    <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:12px_12px] pointer-events-none" />
+                    <div className="absolute top-0 bottom-0 right-5 sm:right-7 w-3.5 sm:w-4 bg-[#2a1d13] shadow-[inset_0_0_3px_rgba(0,0,0,0.8),2px_0_6px_rgba(0,0,0,0.4)] pointer-events-none" />
+                    <div className="relative z-10 w-[84%] max-w-[240px] bg-[#f5eedb] p-2.5 sm:p-3 rounded-xs shadow-xl border border-[#d8caa8] flex flex-col items-center transform -rotate-0.5">
+                      <div className="w-full aspect-[4/3] rounded-2xs overflow-hidden bg-[#e0d6c3] shadow-inner mb-2">
+                        <img
+                          src="/journal/page-1.jpg"
+                          alt="Cover art"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <h3 className="font-['Caveat',cursive] text-xl sm:text-2xl font-bold text-[#352518] leading-tight text-center tracking-wide">
+                        {journal.title || 'bhoi ka journal'}
+                      </h3>
+                      <p className="font-['Caveat',cursive] text-xs sm:text-sm font-semibold text-[#6d513a] text-center">
+                        {pages.length} pages · 2026
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* BACK FACE: Inside Vintage Endpaper */}
+                <div
+                  className="absolute inset-0 rounded-l-2xl overflow-hidden shadow-inner bg-[#eadecc] border-y border-l border-[#c4b59e]/60"
+                  style={{
+                    transform: 'rotateY(180deg)',
+                    WebkitTransform: 'rotateY(180deg)',
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                  }}
+                >
+                  <div className="relative w-full h-full p-6 flex flex-col justify-between">
+                    <div className="opacity-15 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:10px_10px] absolute inset-0 pointer-events-none" />
+                    <div className="font-['Caveat',cursive] text-sm text-[#7a6a57] italic">
+                      Ex Libris · Bhoi Ka Song Tapes
+                    </div>
+                    <div className="font-['Caveat',cursive] text-xs text-[#9d8d7a] text-right">
+                      Spread 01 · 2026
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>
@@ -785,7 +1077,11 @@ export const JournalReaderModal: React.FC = () => {
       {/* ============================================================ */}
       {/* 3. PAPER FOR iOS BOTTOM ACTION BAR (The 4 Circular Buttons) */}
       {/* ============================================================ */}
-      <footer className="w-full pb-[max(1.2rem,env(safe-area-inset-bottom))] pt-2 flex items-center justify-center z-40 flex-shrink-0">
+      <footer
+        className={`w-full pb-[max(1.2rem,env(safe-area-inset-bottom))] pt-2 flex items-center justify-center z-40 flex-shrink-0 transition-opacity duration-300 ${
+          isOpening || isClosing ? 'opacity-0' : 'opacity-100'
+        }`}
+      >
         <div className="flex items-center gap-4 sm:gap-6">
           {/* Button 1: More / Details / Edit Journal */}
           <button
