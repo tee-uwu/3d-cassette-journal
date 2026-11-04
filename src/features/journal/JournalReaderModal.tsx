@@ -35,7 +35,7 @@ export const JournalReaderModal: React.FC = () => {
 
   const journal = journals.find((j) => j.id === selectedJournalId) || journals[0];
 
-  // Dynamic pages list (defaults to authentic Paper for iOS + Bhoi Ka Journal spreads)
+  // Dynamic pages list (defaults to the 7 authentic Bhoi Ka Journal spreads)
   const pages = useMemo(() => {
     if (journal?.pages && journal.pages.length > 0) {
       return journal.pages;
@@ -44,56 +44,65 @@ export const JournalReaderModal: React.FC = () => {
       {
         id: 'p-1',
         page_number: 1,
-        title: 'Devil & Damn Collage',
+        title: 'bhoi ka journal · Page 1',
         date: 'Spread 01',
-        content: 'Original Paper for iOS Sketch · Demons & Voices',
-        lyrics: '“Why send correspondence · Stay true”',
-        photo_url: '/journal/spread-devil.png',
+        content: 'Why send correspondence · Stay true',
+        lyrics: '“Dream without fear, Love without limits...”',
+        photo_url: '/journal/page-1.jpg',
       },
       {
         id: 'p-2',
         page_number: 2,
-        title: 'Ink Portraits & Word Mapping',
+        title: 'bhoi ka journal · Page 2',
         date: 'Spread 02',
-        content: 'Character studies, expressions & word mapping',
-        lyrics: '“Learn from yesterday, live for today · Celebrate life”',
-        photo_url: '/journal/spread-faces.png',
+        content: 'Learn from yesterday, live for today · 22',
+        lyrics: '“Say yes to new adventures · Good things come in small packages · Celebrate life”',
+        photo_url: '/journal/page-2.jpg',
       },
       {
         id: 'p-3',
         page_number: 3,
         title: 'bhoi ka journal · Page 3',
         date: 'Spread 03',
-        content: 'Why send correspondence · Stay true',
-        lyrics: '“Dream without fear, Love without limits...”',
-        photo_url: '/journal/page-1.jpg',
+        content: 'Love yourself · Look up you’ll see the stars',
+        lyrics: '“All things grow · Fearless · How to know the butterflies”',
+        photo_url: '/journal/page-3.jpg',
       },
       {
         id: 'p-4',
         page_number: 4,
         title: 'bhoi ka journal · Page 4',
         date: 'Spread 04',
-        content: 'Learn from yesterday, live for today',
-        lyrics: '“Say yes to new adventures · Good things come in small packages”',
-        photo_url: '/journal/page-2.jpg',
+        content: 'Artful collages & botanical clippings',
+        lyrics: '“Fragments of memories preserved in paper and time.”',
+        photo_url: '/journal/page-4.jpg',
       },
       {
         id: 'p-5',
         page_number: 5,
         title: 'bhoi ka journal · Page 5',
         date: 'Spread 05',
-        content: 'Love yourself · Look up you’ll see the stars',
-        lyrics: '“All things grow · Fearless · How to know the butterflies”',
-        photo_url: '/journal/page-3.jpg',
+        content: 'Vintage stamps, postcards & coffee reflections',
+        lyrics: '“Every dried flower holds a whisper of sunlight.”',
+        photo_url: '/journal/page-5.jpg',
       },
       {
         id: 'p-6',
         page_number: 6,
         title: 'bhoi ka journal · Page 6',
         date: 'Spread 06',
-        content: 'Botanical clippings & vintage collages',
-        lyrics: '“Fragments of memories preserved in paper and time.”',
-        photo_url: '/journal/page-4.jpg',
+        content: 'Late night scribbles & paper lace keepsakes',
+        lyrics: '“Quiet thoughts gathered under warm amber lamp light.”',
+        photo_url: '/journal/page-6.jpg',
+      },
+      {
+        id: 'p-7',
+        page_number: 7,
+        title: 'bhoi ka journal · Page 7',
+        date: 'Spread 07',
+        content: 'Epilogue · Dreams, horizons & journeys',
+        lyrics: '“The story continues on the next horizon.”',
+        photo_url: '/journal/page-7.jpg',
       },
     ];
   }, [journal]);
