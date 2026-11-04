@@ -309,6 +309,72 @@ class AudioEngine {
     } catch {}
   }
 
+  public playBookOpenSound() {
+    try {
+      this.initAudioCtx();
+      if (!this.audioCtx) return;
+      const ctx = this.audioCtx;
+      const t = ctx.currentTime;
+
+      // 1. Initial soft leather cover unlatch click/thump
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(120, t);
+      osc.frequency.exponentialRampToValueAtTime(42, t + 0.06);
+
+      oscGain.gain.setValueAtTime(0.001, t);
+      oscGain.gain.linearRampToValueAtTime(0.045, t + 0.015);
+      oscGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+
+      osc.connect(oscGain);
+      oscGain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.08);
+
+      // 2. Multi-leaf paper flutter (220ms gentle multi-page fan rustle)
+      const dur = 0.22;
+      const bufferSize = Math.floor(ctx.sampleRate * dur);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        const pink = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+        b6 = white * 0.115926;
+        data[i] = pink;
+      }
+
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(480, t + 0.03);
+      filter.frequency.exponentialRampToValueAtTime(260, t + dur);
+      filter.Q.value = 1.1;
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.001, t + 0.03);
+      noiseGain.gain.linearRampToValueAtTime(0.04, t + 0.08);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+
+      noise.start(t + 0.03);
+      noise.stop(t + dur);
+    } catch {}
+  }
+
   public playPenClickSound() {
     try {
       this.initAudioCtx();

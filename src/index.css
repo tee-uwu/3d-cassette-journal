@@ -469,33 +469,33 @@ html[data-theme='obsidian'] .neuro-well {
 @keyframes bookOpenUnfold {
   0% {
     opacity: 0.15;
-    transform: scale(0.82) translateY(24px);
+    transform: scale(0.84) translateY(24px) rotateX(4deg);
   }
-  30% {
+  35% {
     opacity: 1;
   }
   100% {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: scale(1) translateY(0) rotateX(0deg);
   }
 }
 
 @keyframes bookCloseFold {
   0% {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: scale(1) translateY(0) rotateX(0deg);
   }
   70% {
     opacity: 0.7;
   }
   100% {
     opacity: 0;
-    transform: scale(0.82) translateY(24px);
+    transform: scale(0.84) translateY(24px) rotateX(4deg);
   }
 }
 
 .anim-book-open {
-  animation: bookOpenUnfold 660ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: bookOpenUnfold 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: transform, opacity;
 }
 
@@ -510,22 +510,22 @@ html[data-theme='obsidian'] .neuro-well {
     transform: rotateY(0deg);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
   }
-  45% {
-    box-shadow: -24px 16px 42px rgba(0, 0, 0, 0.65);
+  38% {
+    box-shadow: -28px 18px 46px rgba(0, 0, 0, 0.65);
   }
   100% {
     transform: rotateY(-180deg);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
   }
 }
 
 @keyframes coverHingeClose {
   0% {
     transform: rotateY(-180deg);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
   }
-  55% {
-    box-shadow: -24px 16px 42px rgba(0, 0, 0, 0.65);
+  50% {
+    box-shadow: -28px 18px 46px rgba(0, 0, 0, 0.65);
   }
   100% {
     transform: rotateY(0deg);
@@ -534,7 +534,7 @@ html[data-theme='obsidian'] .neuro-well {
 }
 
 .anim-cover-open {
-  animation: coverHingeOpen 660ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: coverHingeOpen 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform-origin: left center;
   -webkit-transform-origin: left center;
   will-change: transform, box-shadow;
@@ -545,6 +545,112 @@ html[data-theme='obsidian'] .neuro-well {
   transform-origin: left center;
   -webkit-transform-origin: left center;
   will-change: transform, box-shadow;
+}
+
+/* Left Page Reveal as front cover swings open */
+@keyframes leftPageReveal {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.25);
+  }
+  30% {
+    opacity: 0.15;
+  }
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+.anim-left-reveal {
+  animation: leftPageReveal 640ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: right center;
+  -webkit-transform-origin: right center;
+}
+
+/* 3D Wave Fan-Out for Left and Right Accordion Stacks */
+@keyframes fanSlideOutLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(0px) translateZ(0px) rotateY(0deg);
+  }
+  20% {
+    opacity: 0.3;
+  }
+  80% {
+    transform: translateX(calc(var(--target-tx) * 1.05)) translateZ(var(--target-tz)) rotateY(calc(var(--target-ry) * 1.04));
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(var(--target-tx)) translateZ(var(--target-tz)) rotateY(var(--target-ry));
+  }
+}
+
+@keyframes fanSlideOutRight {
+  0% {
+    opacity: 0;
+    transform: translateX(0px) translateZ(0px) rotateY(0deg);
+  }
+  20% {
+    opacity: 0.3;
+  }
+  80% {
+    transform: translateX(calc(var(--target-tx) * 1.05)) translateZ(var(--target-tz)) rotateY(calc(var(--target-ry) * 1.04));
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(var(--target-tx)) translateZ(var(--target-tz)) rotateY(var(--target-ry));
+  }
+}
+
+@keyframes fanSlideInLeft {
+  0% {
+    opacity: 1;
+    transform: translateX(var(--target-tx)) translateZ(var(--target-tz)) rotateY(var(--target-ry));
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(0px) translateZ(0px) rotateY(0deg);
+  }
+}
+
+@keyframes fanSlideInRight {
+  0% {
+    opacity: 1;
+    transform: translateX(var(--target-tx)) translateZ(var(--target-tz)) rotateY(var(--target-ry));
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(0px) translateZ(0px) rotateY(0deg);
+  }
+}
+
+.anim-fan-out-left {
+  animation: fanSlideOutLeft 680ms cubic-bezier(0.18, 1, 0.3, 1) forwards;
+  transform-origin: right center;
+  -webkit-transform-origin: right center;
+  will-change: transform, opacity;
+}
+
+.anim-fan-out-right {
+  animation: fanSlideOutRight 680ms cubic-bezier(0.18, 1, 0.3, 1) forwards;
+  transform-origin: left center;
+  -webkit-transform-origin: left center;
+  will-change: transform, opacity;
+}
+
+.anim-fan-in-left {
+  animation: fanSlideInLeft 420ms cubic-bezier(0.25, 0.9, 0.3, 1) forwards;
+  transform-origin: right center;
+  -webkit-transform-origin: right center;
+  will-change: transform, opacity;
+}
+
+.anim-fan-in-right {
+  animation: fanSlideInRight 420ms cubic-bezier(0.25, 0.9, 0.3, 1) forwards;
+  transform-origin: left center;
+  -webkit-transform-origin: left center;
+  will-change: transform, opacity;
 }
 
 .paper-action-btn {
@@ -580,10 +686,20 @@ html[data-theme='obsidian'] .neuro-well {
 }
 
 .paper-fan-item {
-  transition: transform 0.48s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.38s ease, box-shadow 0.48s ease;
+  transition: transform 0.38s cubic-bezier(0.2, 0.8, 0.25, 1), opacity 0.35s ease, box-shadow 0.38s ease;
   will-change: transform, opacity;
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
+}
+
+.paper-fan-item-left:hover {
+  transform: translateX(calc(var(--target-tx) - 10px)) translateZ(calc(var(--target-tz) + 14px)) rotateY(calc(var(--target-ry) - 2.5deg)) !important;
+  box-shadow: -22px 24px 48px rgba(0, 0, 0, 0.65) !important;
+}
+
+.paper-fan-item-right:hover {
+  transform: translateX(calc(var(--target-tx) + 10px)) translateZ(calc(var(--target-tz) + 14px)) rotateY(calc(var(--target-ry) + 2.5deg)) !important;
+  box-shadow: 22px 24px 48px rgba(0, 0, 0, 0.65) !important;
 }
 
 .paper-spine-crease {
@@ -592,9 +708,34 @@ html[data-theme='obsidian'] .neuro-well {
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 26px;
-  background: linear-gradient(90deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.03) 38%, rgba(0,0,0,0.32) 50%, rgba(0,0,0,0.03) 62%, rgba(0,0,0,0.18) 100%);
+  width: 32px;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.22) 0%,
+    rgba(0, 0, 0, 0.04) 34%,
+    rgba(0, 0, 0, 0.38) 50%,
+    rgba(0, 0, 0, 0.04) 66%,
+    rgba(0, 0, 0, 0.22) 100%
+  );
   pointer-events: none;
   z-index: 25;
   mix-blend-mode: multiply;
+}
+
+/* Fine stitch seam thread down the book fold */
+.paper-spine-crease::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(50, 35, 20, 0.45),
+    rgba(50, 35, 20, 0.45) 4px,
+    transparent 4px,
+    transparent 8px
+  );
 }

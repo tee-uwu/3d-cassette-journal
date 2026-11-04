@@ -139,16 +139,16 @@ export const JournalReaderModal: React.FC = () => {
   const touchStartTime = useRef<number>(0);
   const isHorizontalSwipe = useRef<boolean | null>(null);
 
-  // Trigger tactile opening animation & audio whenever book is opened
+  // Trigger tactile opening animation & rich audio flutter whenever book is opened
   useEffect(() => {
     if (selectedJournalId) {
       setIsOpening(true);
       setIsClosing(false);
-      audioEngine.playPageFlipSound();
+      audioEngine.playBookOpenSound();
 
       const timer = setTimeout(() => {
         setIsOpening(false);
-      }, 660);
+      }, 700);
 
       return () => clearTimeout(timer);
     }
@@ -539,8 +539,8 @@ export const JournalReaderModal: React.FC = () => {
       {/* 1. PAPER FOR iOS TOP HEADER */}
       {/* ============================================================ */}
       <header
-        className={`w-full px-4 sm:px-8 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 flex items-center justify-between z-40 flex-shrink-0 transition-opacity duration-300 ${
-          isOpening || isClosing ? 'opacity-0' : 'opacity-100'
+        className={`w-full px-4 sm:px-8 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 flex items-center justify-between z-40 flex-shrink-0 transition-all duration-500 ease-out ${
+          isOpening || isClosing ? 'opacity-0 -translate-y-3 pointer-events-none' : 'opacity-100 translate-y-0'
         }`}
       >
         {/* Left: Close Book & Grid View Buttons */}
@@ -631,168 +631,196 @@ export const JournalReaderModal: React.FC = () => {
           {/* ============================================================ */}
           {/* A. LEFT FANNED ACCORDION STACK (Receding in 3D to the left) */}
           {/* ============================================================ */}
-          {!isOpening && !isClosing && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              {/* Previous page leaves (from currentPage - 1 down to 0) */}
-              {Array.from({ length: currentPage }).map((_, i) => {
-                const pageIdx = currentPage - 1 - i;
-                if (i >= 4) return null; // Show up to 4 previous leaves in fan
-                const offset = i + 1;
-                const zIndex = 18 - offset;
-                const tx = -(offset * 30 + 16);
-                const tz = -(offset * 34 + 18);
-                const ry = -(11 + offset * 2.6);
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            {/* Previous page leaves (from currentPage - 1 down to 0) */}
+            {Array.from({ length: currentPage }).map((_, i) => {
+              const pageIdx = currentPage - 1 - i;
+              if (i >= 4) return null; // Show up to 4 previous leaves in fan
+              const offset = i + 1;
+              const zIndex = 18 - offset;
+              const tx = -(offset * 30 + 16);
+              const tz = -(offset * 34 + 18);
+              const ry = -(11 + offset * 2.6);
 
-                return (
-                  <div
-                    key={`left-leaf-${pageIdx}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      turnPage(pageIdx);
-                    }}
-                    title={`Turn back to Spread ${pageIdx + 1}`}
-                    className="paper-fan-item absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto bg-[#faf5ec] shadow-[-16px_18px_38px_rgba(0,0,0,0.55)] border border-black/20"
-                    style={{
+              return (
+                <div
+                  key={`left-leaf-${pageIdx}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    turnPage(pageIdx);
+                  }}
+                  title={`Turn back to Spread ${pageIdx + 1}`}
+                  className={`paper-fan-item paper-fan-item-left absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto bg-[#faf5ec] shadow-[-16px_18px_38px_rgba(0,0,0,0.55)] border border-black/20 ${
+                    isOpening ? 'anim-fan-out-left' : isClosing ? 'anim-fan-in-left' : ''
+                  }`}
+                  style={
+                    {
                       zIndex,
-                      transform: `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
                       transformOrigin: 'right center',
-                    }}
-                  >
-                    <img
-                      src={getPageImage(pageIdx)}
-                      alt={getPageTitle(pageIdx)}
-                      className="w-full h-full object-cover pointer-events-none"
-                    />
-                    {/* Depth Shading Overlay */}
-                    <div
-                      className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/25 to-black/45 pointer-events-none"
-                      style={{ opacity: Math.min(0.85, 0.35 + offset * 0.12) }}
-                    />
-                  </div>
-                );
-              })}
-
-              {/* Front Cover Leaf (Always fanned at the very outer edge of the left fan) */}
-              {(() => {
-                const leftLeavesCount = Math.min(4, currentPage);
-                const coverOffset = leftLeavesCount + 1;
-                const zIndex = 18 - coverOffset;
-                const tx = -(coverOffset * 30 + 18);
-                const tz = -(coverOffset * 34 + 22);
-                const ry = -(12 + coverOffset * 2.6);
-
-                return (
+                      transform: isOpening || isClosing ? undefined : `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
+                      '--target-tx': `${tx}px`,
+                      '--target-tz': `${tz}px`,
+                      '--target-ry': `${ry}deg`,
+                      animationDelay: isOpening ? `${offset * 35}ms` : undefined,
+                    } as React.CSSProperties
+                  }
+                >
+                  <img
+                    src={getPageImage(pageIdx)}
+                    alt={getPageTitle(pageIdx)}
+                    className="w-full h-full object-cover pointer-events-none"
+                  />
+                  {/* Depth Shading Overlay */}
                   <div
-                    key="left-front-cover"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (currentPage > 0) turnPage(0);
-                    }}
-                    title={currentPage > 0 ? 'Turn to Spread 1' : 'Front Cover'}
-                    className="paper-fan-item absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto shadow-[-18px_20px_42px_rgba(0,0,0,0.65)] border border-[#9d724f]/40"
-                    style={{
+                    className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/25 to-black/45 pointer-events-none"
+                    style={{ opacity: Math.min(0.85, 0.35 + offset * 0.12) }}
+                  />
+                </div>
+              );
+            })}
+
+            {/* Front Cover Leaf (Always fanned at the very outer edge of the left fan) */}
+            {(() => {
+              const leftLeavesCount = Math.min(4, currentPage);
+              const coverOffset = leftLeavesCount + 1;
+              const zIndex = 18 - coverOffset;
+              const tx = -(coverOffset * 30 + 18);
+              const tz = -(coverOffset * 34 + 22);
+              const ry = -(12 + coverOffset * 2.6);
+
+              return (
+                <div
+                  key="left-front-cover"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (currentPage > 0) turnPage(0);
+                  }}
+                  title={currentPage > 0 ? 'Turn to Spread 1' : 'Front Cover'}
+                  className={`paper-fan-item paper-fan-item-left absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto shadow-[-18px_20px_42px_rgba(0,0,0,0.65)] border border-[#9d724f]/40 ${
+                    isOpening ? 'anim-fan-out-left' : isClosing ? 'anim-fan-in-left' : ''
+                  }`}
+                  style={
+                    {
                       zIndex,
-                      transform: `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
                       transformOrigin: 'right center',
-                    }}
-                  >
-                    {renderFrontCoverContent()}
-                    {/* Depth Shading */}
-                    <div
-                      className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-black/40 pointer-events-none"
-                      style={{ opacity: Math.min(0.85, 0.4 + coverOffset * 0.1) }}
-                    />
-                  </div>
-                );
-              })()}
-            </div>
-          )}
+                      transform: isOpening || isClosing ? undefined : `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
+                      '--target-tx': `${tx}px`,
+                      '--target-tz': `${tz}px`,
+                      '--target-ry': `${ry}deg`,
+                      animationDelay: isOpening ? `${coverOffset * 35}ms` : undefined,
+                    } as React.CSSProperties
+                  }
+                >
+                  {renderFrontCoverContent()}
+                  {/* Depth Shading */}
+                  <div
+                    className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-black/40 pointer-events-none"
+                    style={{ opacity: Math.min(0.85, 0.4 + coverOffset * 0.1) }}
+                  />
+                </div>
+              );
+            })()}
+          </div>
 
           {/* ============================================================ */}
           {/* B. RIGHT FANNED ACCORDION STACK (Receding in 3D to the right) */}
           {/* ============================================================ */}
-          {!isOpening && !isClosing && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              {/* Next page leaves (from currentPage + 1 up to pages.length - 1) */}
-              {Array.from({ length: Math.max(0, pages.length - 1 - currentPage) }).map((_, i) => {
-                const pageIdx = currentPage + 1 + i;
-                if (i >= 4) return null; // Show up to 4 upcoming leaves in fan
-                const offset = i + 1;
-                const zIndex = 18 - offset;
-                const tx = offset * 30 + 16;
-                const tz = -(offset * 34 + 18);
-                const ry = 11 + offset * 2.6;
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            {/* Next page leaves (from currentPage + 1 up to pages.length - 1) */}
+            {Array.from({ length: Math.max(0, pages.length - 1 - currentPage) }).map((_, i) => {
+              const pageIdx = currentPage + 1 + i;
+              if (i >= 4) return null; // Show up to 4 upcoming leaves in fan
+              const offset = i + 1;
+              const zIndex = 18 - offset;
+              const tx = offset * 30 + 16;
+              const tz = -(offset * 34 + 18);
+              const ry = 11 + offset * 2.6;
 
-                return (
-                  <div
-                    key={`right-leaf-${pageIdx}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      turnPage(pageIdx);
-                    }}
-                    title={`Turn to Spread ${pageIdx + 1}`}
-                    className="paper-fan-item absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto bg-[#faf5ec] shadow-[16px_18px_38px_rgba(0,0,0,0.55)] border border-black/20"
-                    style={{
+              return (
+                <div
+                  key={`right-leaf-${pageIdx}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    turnPage(pageIdx);
+                  }}
+                  title={`Turn to Spread ${pageIdx + 1}`}
+                  className={`paper-fan-item paper-fan-item-right absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto bg-[#faf5ec] shadow-[16px_18px_38px_rgba(0,0,0,0.55)] border border-black/20 ${
+                    isOpening ? 'anim-fan-out-right' : isClosing ? 'anim-fan-in-right' : ''
+                  }`}
+                  style={
+                    {
                       zIndex,
-                      transform: `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
                       transformOrigin: 'left center',
-                    }}
-                  >
-                    <img
-                      src={getPageImage(pageIdx)}
-                      alt={getPageTitle(pageIdx)}
-                      className="w-full h-full object-cover pointer-events-none"
-                    />
-                    {/* Depth Shading Overlay */}
-                    <div
-                      className="absolute inset-0 bg-gradient-to-l from-black/60 via-black/25 to-black/45 pointer-events-none"
-                      style={{ opacity: Math.min(0.85, 0.35 + offset * 0.12) }}
-                    />
-                  </div>
-                );
-              })}
-
-              {/* Back Cover Leaf (Always fanned at the very outer edge of the right fan) */}
-              {(() => {
-                const rightLeavesCount = Math.min(4, Math.max(0, pages.length - 1 - currentPage));
-                const coverOffset = rightLeavesCount + 1;
-                const zIndex = 18 - coverOffset;
-                const tx = coverOffset * 30 + 18;
-                const tz = -(coverOffset * 34 + 22);
-                const ry = 12 + coverOffset * 2.6;
-
-                return (
+                      transform: isOpening || isClosing ? undefined : `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
+                      '--target-tx': `${tx}px`,
+                      '--target-tz': `${tz}px`,
+                      '--target-ry': `${ry}deg`,
+                      animationDelay: isOpening ? `${offset * 35}ms` : undefined,
+                    } as React.CSSProperties
+                  }
+                >
+                  <img
+                    src={getPageImage(pageIdx)}
+                    alt={getPageTitle(pageIdx)}
+                    className="w-full h-full object-cover pointer-events-none"
+                  />
+                  {/* Depth Shading Overlay */}
                   <div
-                    key="right-back-cover"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (currentPage < pages.length - 1) turnPage(pages.length - 1);
-                    }}
-                    title={currentPage < pages.length - 1 ? `Turn to Spread ${pages.length}` : 'Back Cover'}
-                    className="paper-fan-item absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto shadow-[18px_20px_42px_rgba(0,0,0,0.65)] border border-[#9d724f]/40"
-                    style={{
+                    className="absolute inset-0 bg-gradient-to-l from-black/60 via-black/25 to-black/45 pointer-events-none"
+                    style={{ opacity: Math.min(0.85, 0.35 + offset * 0.12) }}
+                  />
+                </div>
+              );
+            })}
+
+            {/* Back Cover Leaf (Always fanned at the very outer edge of the right fan) */}
+            {(() => {
+              const rightLeavesCount = Math.min(4, Math.max(0, pages.length - 1 - currentPage));
+              const coverOffset = rightLeavesCount + 1;
+              const zIndex = 18 - coverOffset;
+              const tx = coverOffset * 30 + 18;
+              const tz = -(coverOffset * 34 + 22);
+              const ry = 12 + coverOffset * 2.6;
+
+              return (
+                <div
+                  key="right-back-cover"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (currentPage < pages.length - 1) turnPage(pages.length - 1);
+                  }}
+                  title={currentPage < pages.length - 1 ? `Turn to Spread ${pages.length}` : 'Back Cover'}
+                  className={`paper-fan-item paper-fan-item-right absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto shadow-[18px_20px_42px_rgba(0,0,0,0.65)] border border-[#9d724f]/40 ${
+                    isOpening ? 'anim-fan-out-right' : isClosing ? 'anim-fan-in-right' : ''
+                  }`}
+                  style={
+                    {
                       zIndex,
-                      transform: `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
                       transformOrigin: 'left center',
-                    }}
-                  >
-                    {renderBackCoverContent()}
-                    {/* Depth Shading */}
-                    <div
-                      className="absolute inset-0 bg-gradient-to-l from-black/55 via-black/20 to-black/40 pointer-events-none"
-                      style={{ opacity: Math.min(0.85, 0.4 + coverOffset * 0.1) }}
-                    />
-                  </div>
-                );
-              })()}
-            </div>
-          )}
+                      transform: isOpening || isClosing ? undefined : `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
+                      '--target-tx': `${tx}px`,
+                      '--target-tz': `${tz}px`,
+                      '--target-ry': `${ry}deg`,
+                      animationDelay: isOpening ? `${coverOffset * 35}ms` : undefined,
+                    } as React.CSSProperties
+                  }
+                >
+                  {renderBackCoverContent()}
+                  {/* Depth Shading */}
+                  <div
+                    className="absolute inset-0 bg-gradient-to-l from-black/55 via-black/20 to-black/40 pointer-events-none"
+                    style={{ opacity: Math.min(0.85, 0.4 + coverOffset * 0.1) }}
+                  />
+                </div>
+              );
+            })()}
+          </div>
 
           {/* ============================================================ */}
           {/* C. ACTIVE CENTER SPREAD CONTAINER (100% OPAQUE - No Layover) */}
           {/* ============================================================ */}
           <div className="book-spread-container relative w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl bg-[#faf5ec] shadow-[0_28px_65px_-12px_rgba(0,0,0,0.75)] z-20 overflow-hidden">
-            {/* Center spine seam depression */}
+            {/* Center spine seam depression & stitch detail */}
             <div className="paper-spine-crease" />
 
             {/* Left & Right Interactive Click/Tap Turn Zones */}
@@ -828,11 +856,22 @@ export const JournalReaderModal: React.FC = () => {
             {/* ============================================================ */}
             {!isFlipping && !isDragging && (
               <div className="relative w-full h-full flex select-none">
-                <img
-                  src={getPageImage(currentPage)}
-                  alt={getPageTitle(currentPage)}
-                  className="w-full h-full object-cover pointer-events-none"
-                />
+                {/* Left Half Spread (reveals smoothly during book opening) */}
+                <div className={`relative w-1/2 h-full overflow-hidden ${isOpening ? 'anim-left-reveal' : ''}`}>
+                  <img
+                    src={getPageImage(currentPage)}
+                    alt="Left spread half"
+                    className="absolute top-0 left-0 w-[200%] max-w-none h-full object-cover object-left pointer-events-none"
+                  />
+                </div>
+                {/* Right Half Spread */}
+                <div className="relative w-1/2 h-full overflow-hidden">
+                  <img
+                    src={getPageImage(currentPage)}
+                    alt="Right spread half"
+                    className="absolute top-0 left-[-100%] w-[200%] max-w-none h-full object-cover object-right pointer-events-none"
+                  />
+                </div>
                 {/* Subtle warm paper texture fiber */}
                 <div className="absolute inset-0 bg-[#f7f0df]/8 mix-blend-multiply pointer-events-none" />
               </div>
@@ -1078,8 +1117,8 @@ export const JournalReaderModal: React.FC = () => {
       {/* 3. PAPER FOR iOS BOTTOM ACTION BAR (The 4 Circular Buttons) */}
       {/* ============================================================ */}
       <footer
-        className={`w-full pb-[max(1.2rem,env(safe-area-inset-bottom))] pt-2 flex items-center justify-center z-40 flex-shrink-0 transition-opacity duration-300 ${
-          isOpening || isClosing ? 'opacity-0' : 'opacity-100'
+        className={`w-full pb-[max(1.2rem,env(safe-area-inset-bottom))] pt-2 flex items-center justify-center z-40 flex-shrink-0 transition-all duration-500 ease-out ${
+          isOpening || isClosing ? 'opacity-0 translate-y-3 pointer-events-none' : 'opacity-100 translate-y-0'
         }`}
       >
         <div className="flex items-center gap-4 sm:gap-6">
