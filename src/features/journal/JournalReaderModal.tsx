@@ -139,16 +139,16 @@ export const JournalReaderModal: React.FC = () => {
   const touchStartTime = useRef<number>(0);
   const isHorizontalSwipe = useRef<boolean | null>(null);
 
-  // Trigger tactile opening animation & rich audio flutter whenever book is opened
+  // Trigger tactile opening animation & audio whenever book is opened
   useEffect(() => {
     if (selectedJournalId) {
       setIsOpening(true);
       setIsClosing(false);
-      audioEngine.playBookOpenSound();
+      audioEngine.playPageFlipSound();
 
       const timer = setTimeout(() => {
         setIsOpening(false);
-      }, 700);
+      }, 520);
 
       return () => clearTimeout(timer);
     }
@@ -163,7 +163,7 @@ export const JournalReaderModal: React.FC = () => {
     setTimeout(() => {
       setSelectedJournalId(null);
       setIsClosing(false);
-    }, 450);
+    }, 360);
   }, [isClosing, setSelectedJournalId]);
 
   // Show quick toast message
@@ -205,7 +205,7 @@ export const JournalReaderModal: React.FC = () => {
   // Turn page programmatically (tap Next / Prev / arrow keys / fanned stacks)
   const turnPage = useCallback(
     (targetIndex: number) => {
-      if (isFlipping || isDragging || isOpening || isClosing) return;
+      if (isFlipping || isDragging || isClosing) return;
       if (targetIndex === currentPage) return;
       if (targetIndex < 0 || targetIndex >= pages.length) return;
 
@@ -230,7 +230,7 @@ export const JournalReaderModal: React.FC = () => {
 
       return () => clearTimeout(timer);
     },
-    [currentPage, isFlipping, isDragging, isOpening, isClosing, pages.length, setActiveJournalPage]
+    [currentPage, isFlipping, isDragging, isClosing, pages.length, setActiveJournalPage]
   );
 
   const handleNext = useCallback(() => {
@@ -277,7 +277,7 @@ export const JournalReaderModal: React.FC = () => {
   const isPointerActive = useRef<boolean>(false);
 
   const handlePointerStart = (clientX: number, clientY: number) => {
-    if (isFlipping || isGridViewOpen || isOpening || isClosing) return;
+    if (isFlipping || isGridViewOpen || isClosing) return;
     touchStartX.current = clientX;
     touchStartY.current = clientY;
     touchStartTime.current = performance.now();
@@ -289,7 +289,7 @@ export const JournalReaderModal: React.FC = () => {
   };
 
   const handlePointerMove = (clientX: number, clientY: number) => {
-    if (!isPointerActive.current || touchStartX.current === null || touchStartY.current === null || isFlipping || isGridViewOpen || isOpening || isClosing) return;
+    if (!isPointerActive.current || touchStartX.current === null || touchStartY.current === null || isFlipping || isGridViewOpen || isClosing) return;
     const deltaX = clientX - touchStartX.current;
     const deltaY = clientY - touchStartY.current;
 
@@ -475,49 +475,6 @@ export const JournalReaderModal: React.FC = () => {
     }, 200);
   };
 
-  // ============================================================
-  // AUTHENTIC SADDLE LEATHER COVER RENDERERS
-  // ============================================================
-  const renderFrontCoverContent = () => (
-    <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-[#7e5538] via-[#65432a] to-[#4e321e] border border-[#9d724f]/40 shadow-2xl overflow-hidden flex flex-col items-center justify-center p-5 sm:p-7 select-none">
-      {/* Leather Grain Overlay */}
-      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:12px_12px] pointer-events-none" />
-
-      {/* Spine Crease / Binding Line on Left */}
-      <div className="absolute top-0 bottom-0 left-0 w-7 bg-gradient-to-r from-black/45 via-black/10 to-transparent pointer-events-none border-r border-white/10" />
-
-      {/* Dark Elastic Band on Right */}
-      <div className="absolute top-0 bottom-0 right-6 sm:right-9 w-4 sm:w-5 bg-[#2a1d13] shadow-[inset_0_0_4px_rgba(0,0,0,0.8),2px_0_6px_rgba(0,0,0,0.4)] pointer-events-none" />
-
-      {/* Center Polaroid Artwork Label */}
-      <div className="relative z-10 w-[78%] max-w-[270px] bg-[#f5eedb] p-3 sm:p-4 rounded-sm shadow-[0_12px_30px_rgba(0,0,0,0.45)] border border-[#d8caa8] flex flex-col items-center transform -rotate-0.5">
-        <div className="w-full aspect-[4/3] rounded-xs overflow-hidden bg-[#e0d6c3] shadow-inner mb-2.5">
-          <img
-            src="/journal/page-1.jpg"
-            alt="Cover artwork"
-            className="w-full h-full object-cover"
-          />
-        </div>
-        <h3 className="font-['Caveat',cursive] text-2xl sm:text-3xl font-bold text-[#352518] leading-tight text-center tracking-wide">
-          {journal.title || 'bhoi ka journal'}
-        </h3>
-        <p className="font-['Caveat',cursive] text-sm sm:text-base font-semibold text-[#6d513a] mt-0.5 text-center">
-          {pages.length} pages · 2026
-        </p>
-      </div>
-    </div>
-  );
-
-  const renderBackCoverContent = () => (
-    <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-[#7e5538] via-[#65432a] to-[#4e321e] border border-[#9d724f]/40 shadow-2xl overflow-hidden flex items-center justify-center p-6 select-none">
-      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:12px_12px] pointer-events-none" />
-      <div className="absolute top-0 bottom-0 right-0 w-7 bg-gradient-to-l from-black/45 via-black/10 to-transparent pointer-events-none border-l border-white/10" />
-      <div className="text-center text-white/30 font-['Caveat',cursive] text-lg sm:text-xl">
-        bhoi ka journal
-      </div>
-    </div>
-  );
-
   if (!selectedJournalId || !journal) return null;
 
   return (
@@ -538,11 +495,7 @@ export const JournalReaderModal: React.FC = () => {
       {/* ============================================================ */}
       {/* 1. PAPER FOR iOS TOP HEADER */}
       {/* ============================================================ */}
-      <header
-        className={`w-full px-4 sm:px-8 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 flex items-center justify-between z-40 flex-shrink-0 transition-all duration-500 ease-out ${
-          isOpening || isClosing ? 'opacity-0 -translate-y-3 pointer-events-none' : 'opacity-100 translate-y-0'
-        }`}
-      >
+      <header className="w-full px-4 sm:px-8 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 flex items-center justify-between z-40 flex-shrink-0 animate-in fade-in duration-300">
         {/* Left: Close Book & Grid View Buttons */}
         <div className="flex items-center gap-2.5 sm:gap-3">
           <button
@@ -629,18 +582,18 @@ export const JournalReaderModal: React.FC = () => {
           <div className="absolute -bottom-8 w-[88%] h-14 bg-black/75 blur-2xl rounded-full pointer-events-none" />
 
           {/* ============================================================ */}
-          {/* A. LEFT FANNED ACCORDION STACK (Receding in 3D to the left) */}
+          {/* A. LEFT FANNED ACCORDION STACK (Previous pages & cover edge) */}
           {/* ============================================================ */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            {/* Previous page leaves (from currentPage - 1 down to 0) */}
+            {/* Preceding Page Leaves */}
             {Array.from({ length: currentPage }).map((_, i) => {
               const pageIdx = currentPage - 1 - i;
-              if (i >= 4) return null; // Show up to 4 previous leaves in fan
+              if (i >= 3) return null; // Show up to 3 previous leaves
               const offset = i + 1;
-              const zIndex = 18 - offset;
-              const tx = -(offset * 30 + 16);
-              const tz = -(offset * 34 + 18);
-              const ry = -(11 + offset * 2.6);
+              const zIndex = 16 - offset;
+              const tx = -(offset * 24 + 10);
+              const tz = -(offset * 28);
+              const ry = -(9 + offset * 2.2);
 
               return (
                 <div
@@ -650,20 +603,15 @@ export const JournalReaderModal: React.FC = () => {
                     turnPage(pageIdx);
                   }}
                   title={`Turn back to Spread ${pageIdx + 1}`}
-                  className={`paper-fan-item paper-fan-item-left absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto bg-[#faf5ec] shadow-[-16px_18px_38px_rgba(0,0,0,0.55)] border border-black/20 ${
-                    isOpening ? 'anim-fan-out-left' : isClosing ? 'anim-fan-in-left' : ''
-                  }`}
-                  style={
-                    {
-                      zIndex,
-                      transformOrigin: 'right center',
-                      transform: isOpening || isClosing ? undefined : `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
-                      '--target-tx': `${tx}px`,
-                      '--target-tz': `${tz}px`,
-                      '--target-ry': `${ry}deg`,
-                      animationDelay: isOpening ? `${offset * 35}ms` : undefined,
-                    } as React.CSSProperties
-                  }
+                  className="paper-fan-item paper-fan-item-left absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto bg-[#faf5ec] shadow-[-14px_16px_34px_rgba(0,0,0,0.55)] border border-black/20"
+                  style={{
+                    zIndex,
+                    transformOrigin: 'right center',
+                    transform: `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
+                    '--target-tx': `${tx}px`,
+                    '--target-tz': `${tz}px`,
+                    '--target-ry': `${ry}deg`,
+                  } as React.CSSProperties}
                 >
                   <img
                     src={getPageImage(pageIdx)}
@@ -679,42 +627,40 @@ export const JournalReaderModal: React.FC = () => {
               );
             })}
 
-            {/* Front Cover Leaf (Always fanned at the very outer edge of the left fan) */}
+            {/* Front Leather Cover Edge (Always framing the left end of the book) */}
             {(() => {
-              const leftLeavesCount = Math.min(4, currentPage);
-              const coverOffset = leftLeavesCount + 1;
-              const zIndex = 18 - coverOffset;
-              const tx = -(coverOffset * 30 + 18);
-              const tz = -(coverOffset * 34 + 22);
-              const ry = -(12 + coverOffset * 2.6);
+              const leftCount = Math.min(3, currentPage);
+              const coverOffset = leftCount + 1;
+              const zIndex = 16 - coverOffset;
+              const tx = -(coverOffset * 24 + 14);
+              const tz = -(coverOffset * 28 + 6);
+              const ry = -(10 + coverOffset * 2.2);
 
               return (
                 <div
-                  key="left-front-cover"
+                  key="left-cover-edge"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (currentPage > 0) turnPage(0);
                   }}
                   title={currentPage > 0 ? 'Turn to Spread 1' : 'Front Cover'}
-                  className={`paper-fan-item paper-fan-item-left absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto shadow-[-18px_20px_42px_rgba(0,0,0,0.65)] border border-[#9d724f]/40 ${
-                    isOpening ? 'anim-fan-out-left' : isClosing ? 'anim-fan-in-left' : ''
-                  }`}
-                  style={
-                    {
-                      zIndex,
-                      transformOrigin: 'right center',
-                      transform: isOpening || isClosing ? undefined : `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
-                      '--target-tx': `${tx}px`,
-                      '--target-tz': `${tz}px`,
-                      '--target-ry': `${ry}deg`,
-                      animationDelay: isOpening ? `${coverOffset * 35}ms` : undefined,
-                    } as React.CSSProperties
-                  }
+                  className="paper-fan-item paper-fan-item-left absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto shadow-[-16px_18px_38px_rgba(0,0,0,0.65)] border border-[#8e6543]/40 bg-gradient-to-r from-[#4d321d] via-[#65432a] to-[#785238]"
+                  style={{
+                    zIndex,
+                    transformOrigin: 'right center',
+                    transform: `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
+                    '--target-tx': `${tx}px`,
+                    '--target-tz': `${tz}px`,
+                    '--target-ry': `${ry}deg`,
+                  } as React.CSSProperties}
                 >
-                  {renderFrontCoverContent()}
-                  {/* Depth Shading */}
+                  {/* Leather Grain Texture */}
+                  <div className="absolute inset-0 opacity-25 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:12px_12px] pointer-events-none" />
+                  {/* Subtle Spine Stitch Line on outer edge */}
+                  <div className="absolute top-0 bottom-0 left-2 w-1 border-r border-dashed border-white/20 pointer-events-none" />
+                  {/* Depth shadow */}
                   <div
-                    className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-black/40 pointer-events-none"
+                    className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-black/35 pointer-events-none"
                     style={{ opacity: Math.min(0.85, 0.4 + coverOffset * 0.1) }}
                   />
                 </div>
@@ -723,18 +669,18 @@ export const JournalReaderModal: React.FC = () => {
           </div>
 
           {/* ============================================================ */}
-          {/* B. RIGHT FANNED ACCORDION STACK (Receding in 3D to the right) */}
+          {/* B. RIGHT FANNED ACCORDION STACK (Upcoming pages & cover edge) */}
           {/* ============================================================ */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            {/* Next page leaves (from currentPage + 1 up to pages.length - 1) */}
+            {/* Upcoming Page Leaves */}
             {Array.from({ length: Math.max(0, pages.length - 1 - currentPage) }).map((_, i) => {
               const pageIdx = currentPage + 1 + i;
-              if (i >= 4) return null; // Show up to 4 upcoming leaves in fan
+              if (i >= 3) return null; // Show up to 3 upcoming leaves
               const offset = i + 1;
-              const zIndex = 18 - offset;
-              const tx = offset * 30 + 16;
-              const tz = -(offset * 34 + 18);
-              const ry = 11 + offset * 2.6;
+              const zIndex = 16 - offset;
+              const tx = offset * 24 + 10;
+              const tz = -(offset * 28);
+              const ry = 9 + offset * 2.2;
 
               return (
                 <div
@@ -744,20 +690,15 @@ export const JournalReaderModal: React.FC = () => {
                     turnPage(pageIdx);
                   }}
                   title={`Turn to Spread ${pageIdx + 1}`}
-                  className={`paper-fan-item paper-fan-item-right absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto bg-[#faf5ec] shadow-[16px_18px_38px_rgba(0,0,0,0.55)] border border-black/20 ${
-                    isOpening ? 'anim-fan-out-right' : isClosing ? 'anim-fan-in-right' : ''
-                  }`}
-                  style={
-                    {
-                      zIndex,
-                      transformOrigin: 'left center',
-                      transform: isOpening || isClosing ? undefined : `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
-                      '--target-tx': `${tx}px`,
-                      '--target-tz': `${tz}px`,
-                      '--target-ry': `${ry}deg`,
-                      animationDelay: isOpening ? `${offset * 35}ms` : undefined,
-                    } as React.CSSProperties
-                  }
+                  className="paper-fan-item paper-fan-item-right absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto bg-[#faf5ec] shadow-[14px_16px_34px_rgba(0,0,0,0.55)] border border-black/20"
+                  style={{
+                    zIndex,
+                    transformOrigin: 'left center',
+                    transform: `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
+                    '--target-tx': `${tx}px`,
+                    '--target-tz': `${tz}px`,
+                    '--target-ry': `${ry}deg`,
+                  } as React.CSSProperties}
                 >
                   <img
                     src={getPageImage(pageIdx)}
@@ -773,42 +714,40 @@ export const JournalReaderModal: React.FC = () => {
               );
             })}
 
-            {/* Back Cover Leaf (Always fanned at the very outer edge of the right fan) */}
+            {/* Back Leather Cover Edge (Always framing the right end of the book) */}
             {(() => {
-              const rightLeavesCount = Math.min(4, Math.max(0, pages.length - 1 - currentPage));
-              const coverOffset = rightLeavesCount + 1;
-              const zIndex = 18 - coverOffset;
-              const tx = coverOffset * 30 + 18;
-              const tz = -(coverOffset * 34 + 22);
-              const ry = 12 + coverOffset * 2.6;
+              const rightCount = Math.min(3, Math.max(0, pages.length - 1 - currentPage));
+              const coverOffset = rightCount + 1;
+              const zIndex = 16 - coverOffset;
+              const tx = coverOffset * 24 + 14;
+              const tz = -(coverOffset * 28 + 6);
+              const ry = 10 + coverOffset * 2.2;
 
               return (
                 <div
-                  key="right-back-cover"
+                  key="right-cover-edge"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (currentPage < pages.length - 1) turnPage(pages.length - 1);
                   }}
                   title={currentPage < pages.length - 1 ? `Turn to Spread ${pages.length}` : 'Back Cover'}
-                  className={`paper-fan-item paper-fan-item-right absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto shadow-[18px_20px_42px_rgba(0,0,0,0.65)] border border-[#9d724f]/40 ${
-                    isOpening ? 'anim-fan-out-right' : isClosing ? 'anim-fan-in-right' : ''
-                  }`}
-                  style={
-                    {
-                      zIndex,
-                      transformOrigin: 'left center',
-                      transform: isOpening || isClosing ? undefined : `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
-                      '--target-tx': `${tx}px`,
-                      '--target-tz': `${tz}px`,
-                      '--target-ry': `${ry}deg`,
-                      animationDelay: isOpening ? `${coverOffset * 35}ms` : undefined,
-                    } as React.CSSProperties
-                  }
+                  className="paper-fan-item paper-fan-item-right absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto shadow-[16px_18px_38px_rgba(0,0,0,0.65)] border border-[#8e6543]/40 bg-gradient-to-l from-[#4d321d] via-[#65432a] to-[#785238]"
+                  style={{
+                    zIndex,
+                    transformOrigin: 'left center',
+                    transform: `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
+                    '--target-tx': `${tx}px`,
+                    '--target-tz': `${tz}px`,
+                    '--target-ry': `${ry}deg`,
+                  } as React.CSSProperties}
                 >
-                  {renderBackCoverContent()}
-                  {/* Depth Shading */}
+                  {/* Leather Grain Texture */}
+                  <div className="absolute inset-0 opacity-25 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:12px_12px] pointer-events-none" />
+                  {/* Subtle Spine Stitch Line on outer edge */}
+                  <div className="absolute top-0 bottom-0 right-2 w-1 border-l border-dashed border-white/20 pointer-events-none" />
+                  {/* Depth shadow */}
                   <div
-                    className="absolute inset-0 bg-gradient-to-l from-black/55 via-black/20 to-black/40 pointer-events-none"
+                    className="absolute inset-0 bg-gradient-to-l from-black/55 via-black/20 to-black/35 pointer-events-none"
                     style={{ opacity: Math.min(0.85, 0.4 + coverOffset * 0.1) }}
                   />
                 </div>
@@ -817,14 +756,14 @@ export const JournalReaderModal: React.FC = () => {
           </div>
 
           {/* ============================================================ */}
-          {/* C. ACTIVE CENTER SPREAD CONTAINER (100% OPAQUE - No Layover) */}
+          {/* C. ACTIVE CENTER SPREAD CONTAINER (100% Crisp - Full Artwork) */}
           {/* ============================================================ */}
           <div className="book-spread-container relative w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl bg-[#faf5ec] shadow-[0_28px_65px_-12px_rgba(0,0,0,0.75)] z-20 overflow-hidden">
             {/* Center spine seam depression & stitch detail */}
             <div className="paper-spine-crease" />
 
             {/* Left & Right Interactive Click/Tap Turn Zones */}
-            {!isFlipping && !isDragging && !isOpening && !isClosing && (
+            {!isFlipping && !isDragging && (
               <>
                 <div
                   className="absolute top-0 bottom-0 left-0 w-1/4 z-30 cursor-pointer flex items-center justify-start pl-3 group"
@@ -852,26 +791,17 @@ export const JournalReaderModal: React.FC = () => {
             )}
 
             {/* ============================================================ */}
-            {/* VIEW 1: STATIC RESTING SPREAD (Only Current Page Content) */}
+            {/* VIEW 1: STATIC RESTING SPREAD (Entire Uncut Double Page) */}
             {/* ============================================================ */}
             {!isFlipping && !isDragging && (
-              <div className="relative w-full h-full flex select-none">
-                {/* Left Half Spread (reveals smoothly during book opening) */}
-                <div className={`relative w-1/2 h-full overflow-hidden ${isOpening ? 'anim-left-reveal' : ''}`}>
-                  <img
-                    src={getPageImage(currentPage)}
-                    alt="Left spread half"
-                    className="absolute top-0 left-0 w-[200%] max-w-none h-full object-cover object-left pointer-events-none"
-                  />
-                </div>
-                {/* Right Half Spread */}
-                <div className="relative w-1/2 h-full overflow-hidden">
-                  <img
-                    src={getPageImage(currentPage)}
-                    alt="Right spread half"
-                    className="absolute top-0 left-[-100%] w-[200%] max-w-none h-full object-cover object-right pointer-events-none"
-                  />
-                </div>
+              <div className="relative w-full h-full select-none overflow-hidden">
+                <img
+                  src={getPageImage(currentPage)}
+                  alt={getPageTitle(currentPage)}
+                  className="w-full h-full object-cover pointer-events-none"
+                />
+                {/* Center spine shadow crease */}
+                <div className="paper-spine-crease" />
                 {/* Subtle warm paper texture fiber */}
                 <div className="absolute inset-0 bg-[#f7f0df]/8 mix-blend-multiply pointer-events-none" />
               </div>
@@ -1044,71 +974,6 @@ export const JournalReaderModal: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {/* ============================================================ */}
-            {/* D. 3D FRONT COVER HINGING ELEMENT (When opening from / closing to shelf) */}
-            {/* ============================================================ */}
-            {(isOpening || isClosing) && (
-              <div
-                className={`absolute top-0 left-1/2 w-1/2 h-full z-40 ${
-                  isOpening ? 'anim-cover-open' : 'anim-cover-close'
-                }`}
-                style={{
-                  transformStyle: 'preserve-3d',
-                  WebkitTransformStyle: 'preserve-3d',
-                }}
-              >
-                {/* FRONT FACE: Outside Saddle Leather with Polaroid label & elastic band */}
-                <div
-                  className="absolute inset-0 rounded-r-2xl overflow-hidden shadow-2xl"
-                  style={{
-                    backfaceVisibility: 'hidden',
-                    WebkitBackfaceVisibility: 'hidden',
-                  }}
-                >
-                  <div className="relative w-full h-full bg-gradient-to-br from-[#7e5538] via-[#65432a] to-[#4e321e] border-y border-r border-[#9d724f]/40 p-4 sm:p-6 flex flex-col items-center justify-center select-none">
-                    <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:12px_12px] pointer-events-none" />
-                    <div className="absolute top-0 bottom-0 right-5 sm:right-7 w-3.5 sm:w-4 bg-[#2a1d13] shadow-[inset_0_0_3px_rgba(0,0,0,0.8),2px_0_6px_rgba(0,0,0,0.4)] pointer-events-none" />
-                    <div className="relative z-10 w-[84%] max-w-[240px] bg-[#f5eedb] p-2.5 sm:p-3 rounded-xs shadow-xl border border-[#d8caa8] flex flex-col items-center transform -rotate-0.5">
-                      <div className="w-full aspect-[4/3] rounded-2xs overflow-hidden bg-[#e0d6c3] shadow-inner mb-2">
-                        <img
-                          src="/journal/page-1.jpg"
-                          alt="Cover art"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <h3 className="font-['Caveat',cursive] text-xl sm:text-2xl font-bold text-[#352518] leading-tight text-center tracking-wide">
-                        {journal.title || 'bhoi ka journal'}
-                      </h3>
-                      <p className="font-['Caveat',cursive] text-xs sm:text-sm font-semibold text-[#6d513a] text-center">
-                        {pages.length} pages · 2026
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* BACK FACE: Inside Vintage Endpaper */}
-                <div
-                  className="absolute inset-0 rounded-l-2xl overflow-hidden shadow-inner bg-[#eadecc] border-y border-l border-[#c4b59e]/60"
-                  style={{
-                    transform: 'rotateY(180deg)',
-                    WebkitTransform: 'rotateY(180deg)',
-                    backfaceVisibility: 'hidden',
-                    WebkitBackfaceVisibility: 'hidden',
-                  }}
-                >
-                  <div className="relative w-full h-full p-6 flex flex-col justify-between">
-                    <div className="opacity-15 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:10px_10px] absolute inset-0 pointer-events-none" />
-                    <div className="font-['Caveat',cursive] text-sm text-[#7a6a57] italic">
-                      Ex Libris · Bhoi Ka Song Tapes
-                    </div>
-                    <div className="font-['Caveat',cursive] text-xs text-[#9d8d7a] text-right">
-                      Spread 01 · 2026
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </main>
@@ -1116,11 +981,7 @@ export const JournalReaderModal: React.FC = () => {
       {/* ============================================================ */}
       {/* 3. PAPER FOR iOS BOTTOM ACTION BAR (The 4 Circular Buttons) */}
       {/* ============================================================ */}
-      <footer
-        className={`w-full pb-[max(1.2rem,env(safe-area-inset-bottom))] pt-2 flex items-center justify-center z-40 flex-shrink-0 transition-all duration-500 ease-out ${
-          isOpening || isClosing ? 'opacity-0 translate-y-3 pointer-events-none' : 'opacity-100 translate-y-0'
-        }`}
-      >
+      <footer className="w-full pb-[max(1.2rem,env(safe-area-inset-bottom))] pt-2 flex items-center justify-center z-40 flex-shrink-0 animate-in fade-in duration-300">
         <div className="flex items-center gap-4 sm:gap-6">
           {/* Button 1: More / Details / Edit Journal */}
           <button
