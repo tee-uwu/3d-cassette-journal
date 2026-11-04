@@ -144,11 +144,11 @@ export const JournalReaderModal: React.FC = () => {
     if (selectedJournalId) {
       setIsOpening(true);
       setIsClosing(false);
-      audioEngine.playPageFlipSound();
+      audioEngine.playBookOpenSound();
 
       const timer = setTimeout(() => {
         setIsOpening(false);
-      }, 520);
+      }, 560);
 
       return () => clearTimeout(timer);
     }
@@ -163,7 +163,7 @@ export const JournalReaderModal: React.FC = () => {
     setTimeout(() => {
       setSelectedJournalId(null);
       setIsClosing(false);
-    }, 360);
+    }, 380);
   }, [isClosing, setSelectedJournalId]);
 
   // Show quick toast message
@@ -579,7 +579,11 @@ export const JournalReaderModal: React.FC = () => {
           onMouseUp={(e) => handlePointerEnd(e.clientX, e.clientY)}
         >
           {/* Ambient Ground Shadow under the open book */}
-          <div className="absolute -bottom-8 w-[88%] h-14 bg-black/75 blur-2xl rounded-full pointer-events-none" />
+          <div
+            className={`absolute -bottom-8 w-[88%] h-14 bg-black/75 blur-2xl rounded-full pointer-events-none ${
+              isOpening ? 'anim-ground-shadow-open' : isClosing ? 'anim-ground-shadow-close' : ''
+            }`}
+          />
 
           {/* ============================================================ */}
           {/* A. LEFT FANNED ACCORDION STACK (Previous pages & cover edge) */}
@@ -603,14 +607,17 @@ export const JournalReaderModal: React.FC = () => {
                     turnPage(pageIdx);
                   }}
                   title={`Turn back to Spread ${pageIdx + 1}`}
-                  className="paper-fan-item paper-fan-item-left absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto bg-[#faf5ec] shadow-[-14px_16px_34px_rgba(0,0,0,0.55)] border border-black/20"
+                  className={`paper-fan-item paper-fan-item-left absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto bg-[#faf5ec] shadow-[-14px_16px_34px_rgba(0,0,0,0.55)] border border-black/20 ${
+                    isOpening ? 'anim-fan-bloom-left' : isClosing ? 'anim-fan-retract-left' : ''
+                  }`}
                   style={{
                     zIndex,
                     transformOrigin: 'right center',
-                    transform: `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
+                    transform: isOpening || isClosing ? undefined : `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
                     '--target-tx': `${tx}px`,
                     '--target-tz': `${tz}px`,
                     '--target-ry': `${ry}deg`,
+                    animationDelay: isOpening ? `${offset * 30}ms` : undefined,
                   } as React.CSSProperties}
                 >
                   <img
@@ -644,14 +651,17 @@ export const JournalReaderModal: React.FC = () => {
                     if (currentPage > 0) turnPage(0);
                   }}
                   title={currentPage > 0 ? 'Turn to Spread 1' : 'Front Cover'}
-                  className="paper-fan-item paper-fan-item-left absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto shadow-[-16px_18px_38px_rgba(0,0,0,0.65)] border border-[#8e6543]/40 bg-gradient-to-r from-[#4d321d] via-[#65432a] to-[#785238]"
+                  className={`paper-fan-item paper-fan-item-left absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto shadow-[-16px_18px_38px_rgba(0,0,0,0.65)] border border-[#8e6543]/40 bg-gradient-to-r from-[#4d321d] via-[#65432a] to-[#785238] ${
+                    isOpening ? 'anim-fan-bloom-left' : isClosing ? 'anim-fan-retract-left' : ''
+                  }`}
                   style={{
                     zIndex,
                     transformOrigin: 'right center',
-                    transform: `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
+                    transform: isOpening || isClosing ? undefined : `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
                     '--target-tx': `${tx}px`,
                     '--target-tz': `${tz}px`,
                     '--target-ry': `${ry}deg`,
+                    animationDelay: isOpening ? `${coverOffset * 30}ms` : undefined,
                   } as React.CSSProperties}
                 >
                   {/* Leather Grain Texture */}
@@ -690,14 +700,17 @@ export const JournalReaderModal: React.FC = () => {
                     turnPage(pageIdx);
                   }}
                   title={`Turn to Spread ${pageIdx + 1}`}
-                  className="paper-fan-item paper-fan-item-right absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto bg-[#faf5ec] shadow-[14px_16px_34px_rgba(0,0,0,0.55)] border border-black/20"
+                  className={`paper-fan-item paper-fan-item-right absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto bg-[#faf5ec] shadow-[14px_16px_34px_rgba(0,0,0,0.55)] border border-black/20 ${
+                    isOpening ? 'anim-fan-bloom-right' : isClosing ? 'anim-fan-retract-right' : ''
+                  }`}
                   style={{
                     zIndex,
                     transformOrigin: 'left center',
-                    transform: `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
+                    transform: isOpening || isClosing ? undefined : `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
                     '--target-tx': `${tx}px`,
                     '--target-tz': `${tz}px`,
                     '--target-ry': `${ry}deg`,
+                    animationDelay: isOpening ? `${offset * 30}ms` : undefined,
                   } as React.CSSProperties}
                 >
                   <img
@@ -731,14 +744,17 @@ export const JournalReaderModal: React.FC = () => {
                     if (currentPage < pages.length - 1) turnPage(pages.length - 1);
                   }}
                   title={currentPage < pages.length - 1 ? `Turn to Spread ${pages.length}` : 'Back Cover'}
-                  className="paper-fan-item paper-fan-item-right absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto shadow-[16px_18px_38px_rgba(0,0,0,0.65)] border border-[#8e6543]/40 bg-gradient-to-l from-[#4d321d] via-[#65432a] to-[#785238]"
+                  className={`paper-fan-item paper-fan-item-right absolute w-[76vw] sm:w-[68vw] max-w-2xl sm:max-w-3xl aspect-[1.42/1] rounded-2xl overflow-hidden cursor-pointer pointer-events-auto shadow-[16px_18px_38px_rgba(0,0,0,0.65)] border border-[#8e6543]/40 bg-gradient-to-l from-[#4d321d] via-[#65432a] to-[#785238] ${
+                    isOpening ? 'anim-fan-bloom-right' : isClosing ? 'anim-fan-retract-right' : ''
+                  }`}
                   style={{
                     zIndex,
                     transformOrigin: 'left center',
-                    transform: `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
+                    transform: isOpening || isClosing ? undefined : `translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`,
                     '--target-tx': `${tx}px`,
                     '--target-tz': `${tz}px`,
                     '--target-ry': `${ry}deg`,
+                    animationDelay: isOpening ? `${coverOffset * 30}ms` : undefined,
                   } as React.CSSProperties}
                 >
                   {/* Leather Grain Texture */}
@@ -791,17 +807,47 @@ export const JournalReaderModal: React.FC = () => {
             )}
 
             {/* ============================================================ */}
-            {/* VIEW 1: STATIC RESTING SPREAD (Entire Uncut Double Page) */}
+            {/* VIEW 1: STATIC RESTING SPREAD (Physical 3D Unfolding Leaves) */}
             {/* ============================================================ */}
             {!isFlipping && !isDragging && (
-              <div className="relative w-full h-full select-none overflow-hidden">
-                <img
-                  src={getPageImage(currentPage)}
-                  alt={getPageTitle(currentPage)}
-                  className="w-full h-full object-cover pointer-events-none"
-                />
+              <div className="relative w-full h-full select-none overflow-hidden flex">
+                {/* Left Half (Unfolds open from spine) */}
+                <div
+                  className={`relative w-1/2 h-full overflow-hidden ${
+                    isOpening ? 'anim-leaf-unfold-left' : isClosing ? 'anim-leaf-fold-left' : ''
+                  }`}
+                  style={{
+                    transformStyle: 'preserve-3d',
+                    WebkitTransformStyle: 'preserve-3d',
+                  }}
+                >
+                  <img
+                    src={getPageImage(currentPage)}
+                    alt="Left spread half"
+                    className="absolute top-0 left-0 w-[200%] max-w-none h-full object-cover object-left pointer-events-none"
+                  />
+                </div>
+
+                {/* Right Half (Unfolds open from spine) */}
+                <div
+                  className={`relative w-1/2 h-full overflow-hidden ${
+                    isOpening ? 'anim-leaf-unfold-right' : isClosing ? 'anim-leaf-fold-right' : ''
+                  }`}
+                  style={{
+                    transformStyle: 'preserve-3d',
+                    WebkitTransformStyle: 'preserve-3d',
+                  }}
+                >
+                  <img
+                    src={getPageImage(currentPage)}
+                    alt="Right spread half"
+                    className="absolute top-0 left-[-100%] w-[200%] max-w-none h-full object-cover object-right pointer-events-none"
+                  />
+                </div>
+
                 {/* Center spine shadow crease */}
                 <div className="paper-spine-crease" />
+
                 {/* Subtle warm paper texture fiber */}
                 <div className="absolute inset-0 bg-[#f7f0df]/8 mix-blend-multiply pointer-events-none" />
               </div>
