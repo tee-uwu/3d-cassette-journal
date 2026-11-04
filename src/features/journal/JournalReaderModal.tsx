@@ -449,17 +449,6 @@ export const JournalReaderModal: React.FC = () => {
 
   if (!selectedJournalId || !journal) return null;
 
-  // Calculate left and right fanned stacks (up to 3 pages on each side)
-  const leftFannedIndices: number[] = [];
-  for (let i = Math.max(0, currentPage - 3); i < currentPage; i++) {
-    leftFannedIndices.push(i);
-  }
-
-  const rightFannedIndices: number[] = [];
-  for (let i = currentPage + 1; i <= Math.min(pages.length - 1, currentPage + 3); i++) {
-    rightFannedIndices.push(i);
-  }
-
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col justify-between paper-ios-bg text-[#FFFFFF] animate-in fade-in duration-300 select-none overflow-hidden"
@@ -505,7 +494,7 @@ export const JournalReaderModal: React.FC = () => {
         {/* Center: Title & Page Count (Exact Paper for iOS Typography) */}
         <div className="text-center">
           <h1 className="text-base sm:text-xl font-bold tracking-tight text-white capitalize leading-tight">
-            {journal.title || 'Journal'}
+            {journal.title || 'bhoi ka journal'}
           </h1>
           <div className="flex items-center justify-center gap-1.5 text-xs text-white/70 font-medium tracking-wide mt-0.5">
             <PenTool className="w-3 h-3 text-white/60" />
@@ -542,7 +531,7 @@ export const JournalReaderModal: React.FC = () => {
       </header>
 
       {/* ============================================================ */}
-      {/* 2. THE 3D FANNED OPEN SKETCHBOOK (Signature Paper for iOS) */}
+      {/* 2. CLEAN FOCUSED SPREAD (Only Active Page Content) */}
       {/* ============================================================ */}
       <main className="flex-1 w-full flex items-center justify-center relative px-2 sm:px-6 overflow-hidden min-h-0">
         {/* Soft Ambient Studio Downlight */}
@@ -561,79 +550,11 @@ export const JournalReaderModal: React.FC = () => {
           onMouseMove={(e) => handlePointerMove(e.clientX, e.clientY)}
           onMouseUp={(e) => handlePointerEnd(e.clientX, e.clientY)}
         >
-          {/* Ambient Ground Shadow under the fanned book */}
-          <div className="absolute -bottom-8 w-[90%] h-14 bg-black/75 blur-2xl rounded-full pointer-events-none" />
+          {/* Ambient Ground Shadow under the book */}
+          <div className="absolute -bottom-8 w-[88%] h-14 bg-black/75 blur-2xl rounded-full pointer-events-none" />
 
           {/* ============================================================ */}
-          {/* LEFT FANNED STACK (Previous Spreads fanned in 3D perspective) */}
-          {/* ============================================================ */}
-          {leftFannedIndices.map((pageIdx) => {
-            const offset = currentPage - pageIdx; // 1 = right behind, 2 = further behind, 3 = furthest
-            const img = getPageImage(pageIdx);
-            return (
-              <div
-                key={`left-fan-${pageIdx}`}
-                onClick={() => turnPage(pageIdx)}
-                className="paper-fan-item absolute w-[86vw] max-w-3xl aspect-[1.42/1] rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer"
-                style={{
-                  transform: `translateX(-${offset * 36 + 14}px) translateZ(-${offset * 48}px) rotateY(-${
-                    8 + offset * 3.5
-                  }deg)`,
-                  zIndex: 10 - offset,
-                  boxShadow: `-${offset * 8}px 18px 40px rgba(0,0,0,0.5)`,
-                }}
-                title={`Jump to Spread ${pageIdx + 1}`}
-              >
-                <img
-                  src={img}
-                  alt={`Spread ${pageIdx + 1}`}
-                  className="w-full h-full object-cover pointer-events-none"
-                />
-                {/* Ambient depth shadow that darkens with distance */}
-                <div
-                  className="absolute inset-0 bg-black pointer-events-none transition-opacity"
-                  style={{ opacity: 0.14 + offset * 0.15 }}
-                />
-              </div>
-            );
-          })}
-
-          {/* ============================================================ */}
-          {/* RIGHT FANNED STACK (Upcoming Spreads fanned in 3D perspective) */}
-          {/* ============================================================ */}
-          {rightFannedIndices.map((pageIdx) => {
-            const offset = pageIdx - currentPage; // 1 = right behind, 2 = further behind, 3 = furthest
-            const img = getPageImage(pageIdx);
-            return (
-              <div
-                key={`right-fan-${pageIdx}`}
-                onClick={() => turnPage(pageIdx)}
-                className="paper-fan-item absolute w-[86vw] max-w-3xl aspect-[1.42/1] rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer"
-                style={{
-                  transform: `translateX(${offset * 36 + 14}px) translateZ(-${offset * 48}px) rotateY(${
-                    8 + offset * 3.5
-                  }deg)`,
-                  zIndex: 10 - offset,
-                  boxShadow: `${offset * 8}px 18px 40px rgba(0,0,0,0.5)`,
-                }}
-                title={`Jump to Spread ${pageIdx + 1}`}
-              >
-                <img
-                  src={img}
-                  alt={`Spread ${pageIdx + 1}`}
-                  className="w-full h-full object-cover pointer-events-none"
-                />
-                {/* Ambient depth shadow that darkens with distance */}
-                <div
-                  className="absolute inset-0 bg-black pointer-events-none transition-opacity"
-                  style={{ opacity: 0.14 + offset * 0.15 }}
-                />
-              </div>
-            );
-          })}
-
-          {/* ============================================================ */}
-          {/* ACTIVE CENTER SPREAD CONTAINER */}
+          {/* ACTIVE CENTER SPREAD CONTAINER (Only current page content visible) */}
           {/* ============================================================ */}
           <div
             className="book-spread-container relative w-[86vw] max-w-3xl aspect-[1.42/1] rounded-xl sm:rounded-2xl bg-[#faf5ec] shadow-[0_28px_65px_-12px_rgba(0,0,0,0.75)] z-20 overflow-hidden"
