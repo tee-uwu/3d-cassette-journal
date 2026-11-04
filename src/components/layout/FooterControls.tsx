@@ -15,6 +15,8 @@ import {
   ArrowLeft,
   SkipBack,
   SkipForward,
+  MoreHorizontal,
+  Share,
 } from 'lucide-react';
 import { EditCassetteModal } from '../../features/cassette/EditCassetteModal';
 
@@ -44,10 +46,10 @@ export const FooterControls: React.FC = () => {
     setShareModalOpen,
     journals,
     activeJournalIndex,
-    setActiveJournalIndex,
     setSelectedJournalId,
     setCreateJournalModalOpen,
     setEditJournalModalOpen,
+    deleteJournal,
   } = useTapeStore();
 
   const [isEditingTape, setIsEditingTape] = useState(false);
@@ -84,13 +86,8 @@ export const FooterControls: React.FC = () => {
           )}
 
           {activeSection === 'journals' && currentJournal && (
-            <div>
-              <h2 className="font-serif-title text-base sm:text-2xl font-medium tracking-tight text-[#3a2f26] leading-snug truncate">
-                {currentJournal.title}
-              </h2>
-              <p className="text-[11px] sm:text-xs text-[#7d6e5d] mt-0.5 tracking-wide truncate">
-                {currentJournal.pages?.length || 0} pages · {currentJournal.subtitle || 'Handcrafted Journal'}
-              </p>
+            <div className="hidden">
+              {/* Journal title is positioned in the top header to match Paper for iOS Image 3 */}
             </div>
           )}
         </div>
@@ -302,69 +299,64 @@ export const FooterControls: React.FC = () => {
               </div>
             )
           ) : (
-            /* JOURNAL BROWSING DOCK */
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full crystal-pill shadow-tape-subtle transition-all">
-              {journals.length > 1 && (
-                <>
-                  {/* Previous Journal */}
-                  <button
-                    onClick={() => setActiveJournalIndex(Math.max(0, activeJournalIndex - 1))}
-                    disabled={activeJournalIndex <= 0}
-                    className="p-1.5 rounded-full text-[#7d6e5d] hover:text-[#3a2f26] hover:bg-black/5 disabled:opacity-30 disabled:hover:bg-transparent transition-all active:scale-95"
-                    title="Previous Journal"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-
-                  <span className="text-[11px] font-mono text-[#7d6e5d] px-1 select-none">
-                    {activeJournalIndex + 1} / {journals.length}
-                  </span>
-
-                  {/* Next Journal */}
-                  <button
-                    onClick={() => setActiveJournalIndex(Math.min(journals.length - 1, activeJournalIndex + 1))}
-                    disabled={activeJournalIndex >= journals.length - 1}
-                    className="p-1.5 rounded-full text-[#7d6e5d] hover:text-[#3a2f26] hover:bg-black/5 disabled:opacity-30 disabled:hover:bg-transparent transition-all active:scale-95"
-                    title="Next Journal"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-
-                  <div className="h-4 w-px bg-[#3a2f26]/15 mx-1" />
-                </>
-              )}
-
-              {/* Open Journal 3D Reader */}
+            /* PAPER FOR iOS AUTHENTIC 4-BUTTON DOCK (Image 3) */
+            <div className="flex flex-col items-center">
+              {/* Tap to open affordance */}
               <button
                 onClick={() => setSelectedJournalId(currentJournal?.id || null)}
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#3a2f26] text-[#FAF7F2] hover:bg-[#251e18] text-xs font-semibold shadow-xs active:scale-95 transition-all"
-                title={`Open and read ${currentJournal?.title}`}
+                className="mb-3 px-4 py-1.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/25 text-white text-xs font-medium backdrop-blur-md transition-all active:scale-95 flex items-center gap-2 shadow-lg"
+                title={`Open ${currentJournal?.title || 'Journal'}`}
               >
-                <BookOpen className="w-4 h-4 text-[#d8a25e]" />
-                <span>Open {currentJournal?.title || 'Journal'}</span>
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Tap to Open Spread</span>
               </button>
 
-              {/* Edit Active Journal */}
-              {currentJournal && (
+              {/* The 4 Signature White Circular Action Buttons */}
+              <div className="flex items-center gap-4 sm:gap-6">
+                {/* 1. More / Edit Journal */}
                 <button
-                  onClick={() => setEditJournalModalOpen(true, currentJournal.id)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-full neuro-btn text-xs font-medium text-[#3a2f26] active:scale-95 transition-all"
-                  title="Edit this journal's cover, colors, or pages"
+                  onClick={() => setEditJournalModalOpen(true, currentJournal?.id)}
+                  className="paper-action-btn"
+                  title="Journal Options & Cover Style"
                 >
-                  <Edit3 className="w-3.5 h-3.5 text-[#7d6e5d]" />
-                  <span className="hidden sm:inline">Edit</span>
+                  <MoreHorizontal className="w-5 h-5 text-[#2b2b2b]" />
                 </button>
-              )}
 
-              {/* Add More Journals */}
-              <button
-                onClick={() => setCreateJournalModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-full neuro-btn text-xs font-medium text-[#3a2f26] active:scale-95 transition-all"
-                title="Create and add a new journal"
-              >
-                <Plus className="w-3.5 h-3.5 text-[#7d6e5d]" />
-                <span>Add Journal</span>
-              </button>
+                {/* 2. Share Journal */}
+                <button
+                  onClick={() => setShareModalOpen(true)}
+                  className="paper-action-btn"
+                  title="Share Collection / Journal"
+                >
+                  <Share className="w-4.5 h-4.5 text-[#2b2b2b]" />
+                </button>
+
+                {/* 3. Delete Journal */}
+                <button
+                  onClick={() => {
+                    if (journals.length <= 1) {
+                      alert('You must keep at least one journal in your collection.');
+                      return;
+                    }
+                    if (currentJournal && window.confirm(`Delete "${currentJournal.title}"?`)) {
+                      deleteJournal(currentJournal.id);
+                    }
+                  }}
+                  className="paper-action-btn hover:text-red-600"
+                  title="Delete this journal"
+                >
+                  <Trash2 className="w-4.5 h-4.5 text-[#2b2b2b] hover:text-red-600 transition-colors" />
+                </button>
+
+                {/* 4. Add New Journal */}
+                <button
+                  onClick={() => setCreateJournalModalOpen(true)}
+                  className="paper-action-btn"
+                  title="Create New Journal"
+                >
+                  <Plus className="w-5 h-5 text-[#2b2b2b]" />
+                </button>
+              </div>
             </div>
           )}
         </div>

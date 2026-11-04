@@ -261,7 +261,7 @@ html[data-theme='obsidian'] .neuro-well {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   overflow: hidden;
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 16px 16px 0;
 }
 
 .book-leaf-front img,
@@ -273,56 +273,56 @@ html[data-theme='obsidian'] .neuro-well {
 .book-leaf-back {
   transform: rotateY(180deg) translateZ(1px);
   -webkit-transform: rotateY(180deg) translateZ(1px);
-  border-radius: 6px 0 0 6px;
+  border-radius: 16px 0 0 16px;
 }
 
-/* Masterclass 3D Forward Flip: Right page (0deg) arches over center spine to Left (-180deg) */
+/* Masterclass 3D Forward Flip: Right page (0deg) arches over center spine to Left (-180deg) with curling skew */
 @keyframes bookFlipForward {
   0% {
-    transform: rotateY(0deg) scaleY(1);
-    box-shadow: -2px 0 8px rgba(40, 25, 10, 0.15);
+    transform: rotateY(0deg) skewY(0deg) scaleY(1);
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
   }
   30% {
-    transform: rotateY(-50deg) scaleY(1.022);
-    box-shadow: -18px 10px 35px rgba(25, 15, 8, 0.45);
+    transform: rotateY(-48deg) skewY(-1.2deg) scaleY(1.025);
+    box-shadow: -22px 12px 38px rgba(0, 0, 0, 0.45);
   }
   65% {
-    transform: rotateY(-125deg) scaleY(1.02);
-    box-shadow: 18px 10px 35px rgba(25, 15, 8, 0.4);
+    transform: rotateY(-128deg) skewY(1.2deg) scaleY(1.022);
+    box-shadow: 22px 12px 38px rgba(0, 0, 0, 0.4);
   }
   100% {
-    transform: rotateY(-180deg) scaleY(1);
-    box-shadow: 2px 0 8px rgba(40, 25, 10, 0.12);
+    transform: rotateY(-180deg) skewY(0deg) scaleY(1);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.12);
   }
 }
 
-/* Masterclass 3D Backward Flip: Left page (-180deg) arches back over center spine to Right (0deg) */
+/* Masterclass 3D Backward Flip: Left page (-180deg) arches back over center spine to Right (0deg) with curling skew */
 @keyframes bookFlipBackward {
   0% {
-    transform: rotateY(-180deg) scaleY(1);
-    box-shadow: 2px 0 8px rgba(40, 25, 10, 0.12);
+    transform: rotateY(-180deg) skewY(0deg) scaleY(1);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.12);
   }
   35% {
-    transform: rotateY(-125deg) scaleY(1.02);
-    box-shadow: 18px 10px 35px rgba(25, 15, 8, 0.4);
+    transform: rotateY(-128deg) skewY(1.2deg) scaleY(1.022);
+    box-shadow: 22px 12px 38px rgba(0, 0, 0, 0.4);
   }
   70% {
-    transform: rotateY(-50deg) scaleY(1.022);
-    box-shadow: -18px 10px 35px rgba(25, 15, 8, 0.45);
+    transform: rotateY(-48deg) skewY(-1.2deg) scaleY(1.025);
+    box-shadow: -22px 12px 38px rgba(0, 0, 0, 0.45);
   }
   100% {
-    transform: rotateY(0deg) scaleY(1);
-    box-shadow: -2px 0 8px rgba(40, 25, 10, 0.15);
+    transform: rotateY(0deg) skewY(0deg) scaleY(1);
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
   }
 }
 
 .anim-flip-forward {
-  animation: bookFlipForward 440ms cubic-bezier(0.22, 0.95, 0.32, 1) forwards;
+  animation: bookFlipForward 440ms cubic-bezier(0.25, 1, 0.35, 1) forwards;
   will-change: transform, box-shadow;
 }
 
 .anim-flip-backward {
-  animation: bookFlipBackward 440ms cubic-bezier(0.22, 0.95, 0.32, 1) forwards;
+  animation: bookFlipBackward 440ms cubic-bezier(0.25, 1, 0.35, 1) forwards;
   will-change: transform, box-shadow;
 }
 
@@ -458,4 +458,61 @@ html[data-theme='obsidian'] .neuro-well {
 /* Subtle corner curl affordance on mobile cards */
 .corner-curl-hint {
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 28px), calc(100% - 28px) 100%, 0 100%);
+}
+
+/* Paper for iOS Authentic Styling & 3D Fanned Sketchbook */
+.paper-ios-bg {
+  background: radial-gradient(ellipse at 50% 38%, #2e354c 0%, #222739 65%, #181d2c 100%);
+}
+
+.paper-action-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #2b2b2b;
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.45), 0 3px 8px -2px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.15s ease, box-shadow 0.16s ease;
+  flex-shrink: 0;
+}
+
+.paper-action-btn:hover {
+  transform: translateY(-2px) scale(1.06);
+  background-color: #f8f8f8;
+  box-shadow: 0 14px 30px -4px rgba(0, 0, 0, 0.5);
+}
+
+.paper-action-btn:active {
+  transform: translateY(1px) scale(0.93);
+  background-color: #e5e5e5;
+}
+
+@media (min-width: 640px) {
+  .paper-action-btn {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+.paper-fan-item {
+  transition: transform 0.48s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.38s ease, box-shadow 0.48s ease;
+  will-change: transform, opacity;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+
+.paper-spine-crease {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 26px;
+  background: linear-gradient(90deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.03) 38%, rgba(0,0,0,0.32) 50%, rgba(0,0,0,0.03) 62%, rgba(0,0,0,0.18) 100%);
+  pointer-events: none;
+  z-index: 25;
+  mix-blend-mode: multiply;
 }

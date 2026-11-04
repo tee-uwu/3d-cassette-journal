@@ -101,8 +101,8 @@ export const SpatialEnvironment: React.FC = () => {
             <JournalCarousel />
           )}
 
-          {/* Physical floating shelf and shadow */}
-          <PhysicalShelf />
+          {/* Physical floating shelf (only on cassette tape shelf) and shadow */}
+          {activeSection === 'cassettes' && <PhysicalShelf />}
           <GroundShelfShadow />
         </Suspense>
       </Canvas>

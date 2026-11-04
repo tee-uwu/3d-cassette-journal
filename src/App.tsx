@@ -13,7 +13,7 @@ import { StudioCustomizerModal } from './components/ui/StudioCustomizerModal';
 import { useTapeStore } from './stores/useTapeStore';
 
 export function App() {
-  const { setVisitorMode } = useTapeStore();
+  const { setVisitorMode, activeSection } = useTapeStore();
 
   // Detect share URL format: /c/:token
   useEffect(() => {
@@ -26,8 +26,14 @@ export function App() {
     }
   }, [setVisitorMode]);
 
+  const isJournalMode = activeSection === 'journals';
+
   return (
-    <main className="relative w-screen h-[100dvh] overflow-hidden ambient-gallery-bg text-[#3a2f26] touch-none select-none">
+    <main
+      className={`relative w-screen h-[100dvh] overflow-hidden ${
+        isJournalMode ? 'paper-ios-bg text-white' : 'ambient-gallery-bg text-[#3a2f26]'
+      } touch-none select-none transition-colors duration-500`}
+    >
       {/* Subtle Analog Grain Overlay */}
       <div className="analog-grain" />
 

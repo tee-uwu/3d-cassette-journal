@@ -1,15 +1,24 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useTapeStore } from '../../stores/useTapeStore';
 import {
-  X,
+  BookOpen,
+  LayoutGrid,
+  Search,
+  MoreHorizontal,
+  Share,
+  Trash2,
+  Plus,
   ChevronLeft,
   ChevronRight,
-  BookOpen,
-  Edit3,
-  ZoomIn,
-  ZoomOut,
+  PenTool,
+  X,
+  Upload,
+  Paintbrush,
+  Check,
+  Menu,
 } from 'lucide-react';
 import { audioEngine } from '../../services/audioEngine';
+import { PaperCanvas } from './PaperCanvas';
 
 export const JournalReaderModal: React.FC = () => {
   const {
@@ -19,11 +28,14 @@ export const JournalReaderModal: React.FC = () => {
     setSelectedJournalId,
     setActiveJournalPage,
     setEditJournalModalOpen,
+    setShareModalOpen,
+    addJournalPage,
+    deleteJournalPage,
   } = useTapeStore();
 
   const journal = journals.find((j) => j.id === selectedJournalId) || journals[0];
 
-  // Dynamic pages list (defaults to the 7 authentic Bhoi Ka Journal spreads)
+  // Dynamic pages list (defaults to authentic Paper for iOS + Bhoi Ka Journal spreads)
   const pages = useMemo(() => {
     if (journal?.pages && journal.pages.length > 0) {
       return journal.pages;
@@ -32,34 +44,72 @@ export const JournalReaderModal: React.FC = () => {
       {
         id: 'p-1',
         page_number: 1,
-        title: 'bhoi ka journal · Page 1',
+        title: 'Devil & Damn Collage',
         date: 'Spread 01',
+        content: 'Original Paper for iOS Sketch · Demons & Voices',
+        lyrics: '“Why send correspondence · Stay true”',
+        photo_url: '/journal/spread-devil.png',
+      },
+      {
+        id: 'p-2',
+        page_number: 2,
+        title: 'Ink Portraits & Word Mapping',
+        date: 'Spread 02',
+        content: 'Character studies, expressions & word mapping',
+        lyrics: '“Learn from yesterday, live for today · Celebrate life”',
+        photo_url: '/journal/spread-faces.png',
+      },
+      {
+        id: 'p-3',
+        page_number: 3,
+        title: 'bhoi ka journal · Page 3',
+        date: 'Spread 03',
         content: 'Why send correspondence · Stay true',
+        lyrics: '“Dream without fear, Love without limits...”',
         photo_url: '/journal/page-1.jpg',
+      },
+      {
+        id: 'p-4',
+        page_number: 4,
+        title: 'bhoi ka journal · Page 4',
+        date: 'Spread 04',
+        content: 'Learn from yesterday, live for today',
+        lyrics: '“Say yes to new adventures · Good things come in small packages”',
+        photo_url: '/journal/page-2.jpg',
+      },
+      {
+        id: 'p-5',
+        page_number: 5,
+        title: 'bhoi ka journal · Page 5',
+        date: 'Spread 05',
+        content: 'Love yourself · Look up you’ll see the stars',
+        lyrics: '“All things grow · Fearless · How to know the butterflies”',
+        photo_url: '/journal/page-3.jpg',
+      },
+      {
+        id: 'p-6',
+        page_number: 6,
+        title: 'bhoi ka journal · Page 6',
+        date: 'Spread 06',
+        content: 'Botanical clippings & vintage collages',
+        lyrics: '“Fragments of memories preserved in paper and time.”',
+        photo_url: '/journal/page-4.jpg',
       },
     ];
   }, [journal]);
 
   const [currentPage, setCurrentPage] = useState<number>(activeJournalPage || 0);
 
-  // Responsive device check
-  const [isMobile, setIsMobile] = useState<boolean>(
-    () => typeof window !== 'undefined' && window.innerWidth < 768
-  );
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   // UI Modes
-  const [isZoomed, setIsZoomed] = useState<boolean>(false);
-  const [showThumbnails, setShowThumbnails] = useState<boolean>(false);
+  const [isGridViewOpen, setIsGridViewOpen] = useState<boolean>(false);
+  const [isAddPageModalOpen, setIsAddPageModalOpen] = useState<boolean>(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState<boolean>(false);
+  const [addMode, setAddMode] = useState<'draw' | 'photo'>('draw');
+  const [newPhotoUrl, setNewPhotoUrl] = useState<string>('');
+  const [newTitle, setNewTitle] = useState<string>('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // 3D Physical Page Turn States
+  // 3D Physical Page Turn States (Paper by FiftyThree Physics)
   const [isFlipping, setIsFlipping] = useState<boolean>(false);
   const [flipDirection, setFlipDirection] = useState<'next' | 'prev' | null>(null);
   const [fromPage, setFromPage] = useState<number>(0);
@@ -75,7 +125,12 @@ export const JournalReaderModal: React.FC = () => {
   const touchStartY = useRef<number | null>(null);
   const touchStartTime = useRef<number>(0);
   const isHorizontalSwipe = useRef<boolean | null>(null);
-  const lastTapTime = useRef<number>(0);
+
+  // Show quick toast message
+  const showToast = useCallback((msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 2500);
+  }, []);
 
   // Sync with store when activeJournalPage changes
   const [prevActivePage, setPrevActivePage] = useState(activeJournalPage);
@@ -107,7 +162,7 @@ export const JournalReaderModal: React.FC = () => {
     return p?.title || `Spread ${idx + 1}`;
   };
 
-  // Turn page programmatically (tap Next / Prev / arrow keys / thumbnails)
+  // Turn page programmatically (tap Next / Prev / arrow keys / fanned stacks)
   const turnPage = useCallback(
     (targetIndex: number) => {
       if (isFlipping || isDragging) return;
@@ -156,6 +211,8 @@ export const JournalReaderModal: React.FC = () => {
     if (!selectedJournalId) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (isAddPageModalOpen || isDeleteConfirmOpen) return;
+
       if (e.key === 'ArrowRight' || e.key === ' ') {
         e.preventDefault();
         handleNext();
@@ -163,41 +220,45 @@ export const JournalReaderModal: React.FC = () => {
         e.preventDefault();
         handlePrev();
       } else if (e.key === 'Escape') {
-        setSelectedJournalId(null);
+        if (isGridViewOpen) {
+          setIsGridViewOpen(false);
+        } else {
+          setSelectedJournalId(null);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedJournalId, handleNext, handlePrev, setSelectedJournalId]);
+  }, [selectedJournalId, handleNext, handlePrev, setSelectedJournalId, isGridViewOpen, isAddPageModalOpen, isDeleteConfirmOpen]);
 
   // ============================================================
-  // TOUCH GESTURE ENGINE (Real-Time 3D Leaf Rotation)
+  // UNIFIED POINTER GESTURE ENGINE (Mouse & Touch Real-Time 3D Leaf Rotation)
   // ============================================================
-  const onTouchStart = (e: React.TouchEvent) => {
-    if (isFlipping || isZoomed) return;
-    const touch = e.touches[0];
-    touchStartX.current = touch.clientX;
-    touchStartY.current = touch.clientY;
+  const isPointerActive = useRef<boolean>(false);
+
+  const handlePointerStart = (clientX: number, clientY: number) => {
+    if (isFlipping || isGridViewOpen) return;
+    touchStartX.current = clientX;
+    touchStartY.current = clientY;
     touchStartTime.current = performance.now();
     isHorizontalSwipe.current = null;
+    isPointerActive.current = true;
     setIsDragging(false);
     setDragAngle(0);
     setDragDirection(null);
   };
 
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (touchStartX.current === null || touchStartY.current === null || isFlipping || isZoomed) return;
-    const touch = e.touches[0];
-    const deltaX = touch.clientX - touchStartX.current;
-    const deltaY = touch.clientY - touchStartY.current;
+  const handlePointerMove = (clientX: number, clientY: number) => {
+    if (!isPointerActive.current || touchStartX.current === null || touchStartY.current === null || isFlipping || isGridViewOpen) return;
+    const deltaX = clientX - touchStartX.current;
+    const deltaY = clientY - touchStartY.current;
 
     // Detect horizontal drag intent
     if (isHorizontalSwipe.current === null) {
-      if (Math.hypot(deltaX, deltaY) > 8) {
+      if (Math.hypot(deltaX, deltaY) > 6) {
         isHorizontalSwipe.current = Math.abs(deltaX) > Math.abs(deltaY);
         if (isHorizontalSwipe.current) {
-          // Initialize drag direction and pages
           if (deltaX < 0 && currentPage < pages.length - 1) {
             setDragDirection('next');
             setFromPage(currentPage);
@@ -228,35 +289,23 @@ export const JournalReaderModal: React.FC = () => {
     }
   };
 
-  const onTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null || touchStartY.current === null) return;
-    const endX = e.changedTouches[0].clientX;
-    const endY = e.changedTouches[0].clientY;
-    const diffX = touchStartX.current - endX;
-    const diffY = touchStartY.current - endY;
+  const handlePointerEnd = (clientX: number, clientY: number) => {
+    if (!isPointerActive.current || touchStartX.current === null || touchStartY.current === null) return;
+    isPointerActive.current = false;
+    const diffX = touchStartX.current - clientX;
+    const diffY = touchStartY.current - clientY;
     const elapsed = performance.now() - touchStartTime.current;
     const velocity = Math.abs(diffX) / Math.max(1, elapsed);
 
     touchStartX.current = null;
     touchStartY.current = null;
 
-    if (isZoomed) {
-      const now = performance.now();
-      if (now - lastTapTime.current < 320) {
-        setIsZoomed(false);
-      }
-      lastTapTime.current = now;
-      return;
-    }
-
     if (isHorizontalSwipe.current && isDragging && dragDirection) {
       const destDirection = dragDirection;
       setIsDragging(false);
 
       if (destDirection === 'next') {
-        // Did we pull past midpoint (-85deg) or flick quickly?
         if (dragAngle < -85 || (diffX > 25 && velocity > 0.3)) {
-          // Complete forward turn
           setDragAngle(-180);
           audioEngine.playPageFlipSound();
           if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
@@ -271,16 +320,11 @@ export const JournalReaderModal: React.FC = () => {
             setDragAngle(0);
           }, 220);
         } else {
-          // Snap back to 0deg
           setDragAngle(0);
-          setTimeout(() => {
-            setDragDirection(null);
-          }, 200);
+          setTimeout(() => setDragDirection(null), 200);
         }
       } else if (destDirection === 'prev') {
-        // Did we pull past midpoint (-95deg) or flick quickly?
         if (dragAngle > -95 || (diffX < -25 && velocity > 0.3)) {
-          // Complete backward turn
           setDragAngle(0);
           audioEngine.playPageFlipSound();
           if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
@@ -295,7 +339,6 @@ export const JournalReaderModal: React.FC = () => {
             setDragAngle(0);
           }, 220);
         } else {
-          // Snap back to -180deg
           setDragAngle(-180);
           setTimeout(() => {
             setDragDirection(null);
@@ -305,529 +348,750 @@ export const JournalReaderModal: React.FC = () => {
       }
     } else if (!isDragging && Math.hypot(diffX, diffY) < 12) {
       // Tap detection
-      const now = performance.now();
-      if (now - lastTapTime.current < 320) {
-        setIsZoomed((z) => !z);
-      } else {
-        const rect = containerRef.current?.getBoundingClientRect();
-        if (rect) {
-          const relX = (endX - rect.left) / rect.width;
-          if (relX < 0.28 && currentPage > 0) {
-            handlePrev();
-          } else if (relX > 0.72 && currentPage < pages.length - 1) {
-            handleNext();
-          }
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (rect) {
+        const relX = (clientX - rect.left) / rect.width;
+        if (relX < 0.28 && currentPage > 0) {
+          handlePrev();
+        } else if (relX > 0.72 && currentPage < pages.length - 1) {
+          handleNext();
         }
       }
-      lastTapTime.current = now;
     }
 
     setIsDragging(false);
     isHorizontalSwipe.current = null;
   };
 
+  // Window global mouse up listener
+  useEffect(() => {
+    const onWindowMouseUp = (e: MouseEvent) => {
+      if (isPointerActive.current) {
+        handlePointerEnd(e.clientX, e.clientY);
+      }
+    };
+    window.addEventListener('mouseup', onWindowMouseUp);
+    return () => window.removeEventListener('mouseup', onWindowMouseUp);
+  }, [dragDirection, dragAngle, currentPage, pages.length]);
+
+  // Export / Share current spread
+  const handleShareSpread = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: `${journal.title} · ${getPageTitle(currentPage)}`,
+        text: `Check out this sketchbook spread from ${journal.title}`,
+        url: window.location.href,
+      }).catch(() => {
+        setShareModalOpen(true);
+      });
+    } else {
+      setShareModalOpen(true);
+    }
+  };
+
+  // Delete current page
+  const confirmDeletePage = () => {
+    if (pages.length <= 1) {
+      showToast('A journal must have at least one spread!');
+      setIsDeleteConfirmOpen(false);
+      return;
+    }
+    const pageToDelete = pages[currentPage];
+    deleteJournalPage(journal.id, pageToDelete.id);
+    setIsDeleteConfirmOpen(false);
+    showToast('Spread deleted');
+    const newIdx = Math.max(0, Math.min(pages.length - 2, currentPage));
+    setCurrentPage(newIdx);
+    setActiveJournalPage(newIdx);
+  };
+
+  // Add new canvas sketch or photo
+  const handleSaveDrawnPage = (dataUrl: string) => {
+    addJournalPage(journal.id, {
+      title: newTitle || `Spread ${pages.length + 1}`,
+      date: `Spread ${String(pages.length + 1).padStart(2, '0')}`,
+      content: 'Original hand-drawn artwork',
+      sketch_data: dataUrl,
+    });
+    setIsAddPageModalOpen(false);
+    setNewTitle('');
+    showToast('New hand-drawn spread added!');
+    setTimeout(() => {
+      turnPage(pages.length);
+    }, 200);
+  };
+
+  const handleSavePhotoPage = () => {
+    if (!newPhotoUrl.trim()) return;
+    addJournalPage(journal.id, {
+      title: newTitle || `Spread ${pages.length + 1}`,
+      date: `Spread ${String(pages.length + 1).padStart(2, '0')}`,
+      content: 'Imported photo artwork',
+      photo_url: newPhotoUrl.trim(),
+    });
+    setIsAddPageModalOpen(false);
+    setNewPhotoUrl('');
+    setNewTitle('');
+    showToast('New photo spread added!');
+    setTimeout(() => {
+      turnPage(pages.length);
+    }, 200);
+  };
+
   if (!selectedJournalId || !journal) return null;
 
-  // Paper stack thickness calculation
-  const totalPages = Math.max(1, pages.length - 1);
-  const leftStackPx = Math.round((currentPage / totalPages) * 7);
-  const rightStackPx = Math.round(((pages.length - 1 - currentPage) / totalPages) * 7);
+  // Calculate left and right fanned stacks (up to 3 pages on each side)
+  const leftFannedIndices: number[] = [];
+  for (let i = Math.max(0, currentPage - 3); i < currentPage; i++) {
+    leftFannedIndices.push(i);
+  }
+
+  const rightFannedIndices: number[] = [];
+  for (let i = currentPage + 1; i <= Math.min(pages.length - 1, currentPage + 3); i++) {
+    rightFannedIndices.push(i);
+  }
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-300 select-none pb-[max(0.5rem,env(safe-area-inset-bottom))]"
-      onClick={() => setSelectedJournalId(null)}
+      className="fixed inset-0 z-50 flex flex-col justify-between paper-ios-bg text-[#FFFFFF] animate-in fade-in duration-300 select-none overflow-hidden"
+      onClick={() => {
+        if (isGridViewOpen) setIsGridViewOpen(false);
+      }}
     >
-      <div
-        className="relative w-full max-w-6xl h-full sm:h-auto max-h-[100dvh] sm:max-h-[96vh] bg-[#231d17]/95 border-0 sm:border border-[#4a3a2d] rounded-none sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col pt-[max(0.25rem,env(safe-area-inset-top))]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* ============================================================ */}
-        {/* 1. TOP HEADER BAR */}
-        {/* ============================================================ */}
-        <div className="px-3 sm:px-6 py-2.5 sm:py-3 border-b border-[#3d2e22] flex items-center justify-between bg-[#1f1914] text-[#EFE7D8] flex-shrink-0">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-[#745037] flex items-center justify-center shadow-xs flex-shrink-0"
-              style={{ backgroundColor: journal.cover_color || '#4a3222' }}
-            >
-              <BookOpen className="w-3.5 h-3.5 text-[#f5ebd9]" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 sm:gap-2.5">
-                <h2 className="text-sm sm:text-base font-semibold text-[#f5ebd9] tracking-tight font-serif capitalize truncate max-w-[130px] sm:max-w-xs">
-                  {journal.title}
-                </h2>
-                <span className="text-[10px] sm:text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#3a2c20] text-[#cbb89e] border border-[#523e2e] whitespace-nowrap">
-                  {currentPage + 1}/{pages.length}
-                </span>
-              </div>
-              <p className="text-[10px] sm:text-[11px] text-[#9b8973] truncate max-w-[170px] sm:max-w-sm">
-                {getPageTitle(currentPage)}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-            <button
-              onClick={() => setEditJournalModalOpen(true, journal.id)}
-              className="flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-medium bg-[#34271c] text-[#e3d3bd] border border-[#543e2d] hover:bg-[#4d3826] hover:text-white active:scale-95 transition-all shadow-xs"
-              title="Edit Journal & Pages"
-            >
-              <Edit3 className="w-3.5 h-3.5 text-[#d8a25e]" />
-              <span className="hidden sm:inline">Edit</span>
-            </button>
-
-            <button
-              onClick={() => setIsZoomed(!isZoomed)}
-              className={`p-1.5 sm:p-2 rounded-full border transition-all ${
-                isZoomed
-                  ? 'bg-[#d8a25e] text-[#241a13] border-[#d8a25e]'
-                  : 'text-[#b5a38c] border-[#543e2d] hover:text-[#f5ebd9] hover:bg-[#34271c]'
-              }`}
-              title={isZoomed ? 'Reset Zoom' : 'Zoom 1.8x (Double Tap)'}
-            >
-              {isZoomed ? <ZoomOut className="w-4 h-4" /> : <ZoomIn className="w-4 h-4" />}
-            </button>
-
-            <button
-              onClick={() => setSelectedJournalId(null)}
-              className="p-1.5 sm:p-2 rounded-full text-[#b5a38c] hover:text-[#f5ebd9] hover:bg-[#34271c] border border-transparent hover:border-[#543e2d] transition-colors"
-              title="Close (Esc)"
-            >
-              <X className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-          </div>
+      {/* Toast notification */}
+      {toastMessage && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-black/80 border border-white/20 text-white text-xs font-medium shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-2 flex items-center gap-2">
+          <Check className="w-3.5 h-3.5 text-emerald-400" />
+          <span>{toastMessage}</span>
         </div>
+      )}
 
-        {/* ============================================================ */}
-        {/* 2. MAIN 3D READING STAGE */}
-        {/* ============================================================ */}
-        <div className="flex-1 overflow-hidden p-2 sm:p-4 md:p-6 flex flex-col items-center justify-center relative bg-[radial-gradient(ellipse_at_center,_#34281e_0%,_#17120e_100%)] min-h-0">
-          <div className="absolute inset-0 bg-radial-vignette pointer-events-none opacity-40" />
-
-          {/* Desktop Floating Navigation Chevron: Previous */}
+      {/* ============================================================ */}
+      {/* 1. PAPER FOR iOS TOP HEADER */}
+      {/* ============================================================ */}
+      <header className="w-full px-4 sm:px-8 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 flex items-center justify-between z-40 flex-shrink-0">
+        {/* Left: Close Book & Grid View Buttons */}
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <button
-            onClick={handlePrev}
-            disabled={currentPage <= 0 || isFlipping || isDragging}
-            className="hidden sm:flex absolute left-2 sm:left-4 md:left-6 z-40 p-2.5 sm:p-3 rounded-full bg-[#241a13]/90 text-[#EFE7D8] border border-[#523e2e] shadow-xl hover:bg-[#3b2b1f] hover:scale-105 active:scale-95 disabled:opacity-20 disabled:hover:scale-100 disabled:hover:bg-[#241a13]/90 transition-all items-center justify-center"
-            title="Previous Page (←)"
+            onClick={() => setSelectedJournalId(null)}
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-white/20 bg-white/10 hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center text-white/90 shadow-sm"
+            title="Close Journal to Shelf (Esc)"
           >
-            <ChevronLeft className="w-5 h-5 text-[#d8a25e]" />
+            <BookOpen className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
           </button>
 
-          {/* Desktop Floating Navigation Chevron: Next */}
           <button
-            onClick={handleNext}
-            disabled={currentPage >= pages.length - 1 || isFlipping || isDragging}
-            className="hidden sm:flex absolute right-2 sm:right-4 md:right-6 z-40 p-2.5 sm:p-3 rounded-full bg-[#241a13]/90 text-[#EFE7D8] border border-[#523e2e] shadow-xl hover:bg-[#3b2b1f] hover:scale-105 active:scale-95 disabled:opacity-20 disabled:hover:scale-100 disabled:hover:bg-[#241a13]/90 transition-all items-center justify-center"
-            title="Next Page (→)"
-          >
-            <ChevronRight className="w-5 h-5 text-[#d8a25e]" />
-          </button>
-
-          {/* Zoom notification banner */}
-          {isZoomed && (
-            <div className="absolute top-3 z-30 px-3 py-1 rounded-full bg-[#1b140f]/90 border border-[#d8a25e]/50 text-[#f5ebd9] text-xs font-mono shadow-lg flex items-center gap-1.5 animate-in fade-in slide-in-from-top-2">
-              <span className="w-2 h-2 rounded-full bg-[#d8a25e] animate-ping" />
-              <span>1.8x Inspect View · Drag to pan · Double-tap to reset</span>
-            </div>
-          )}
-
-          {/* ============================================================ */}
-          {/* 3D BOOK PERSPECTIVE VIEWPORT */}
-          {/* ============================================================ */}
-          <div
-            ref={containerRef}
-            className={`book-perspective w-full max-w-4xl flex items-center justify-center transition-transform duration-300 ${
-              isZoomed ? 'scale-175 sm:scale-125 cursor-grab active:cursor-grabbing z-30' : ''
+            onClick={() => setIsGridViewOpen(!isGridViewOpen)}
+            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full border transition-all flex items-center justify-center shadow-sm ${
+              isGridViewOpen
+                ? 'bg-white text-[#2a2a2a] border-white'
+                : 'border-white/20 bg-white/10 text-white/90 hover:bg-white/20 active:scale-95'
             }`}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
+            title="Grid View (All Pages)"
           >
-            {/* HARDCOVER PHYSICAL ALBUM CONTAINER */}
-            <div
-              className="book-spread-container relative w-full aspect-[1.38/1] max-h-[62vh] sm:max-h-[72vh] p-1.5 sm:p-2.5 md:p-3.5 rounded-xl sm:rounded-2xl bg-[#3a271a] border-2 border-[#543a26] transition-all duration-300"
-              style={{
-                boxShadow: `
-                  -${leftStackPx + 3}px ${leftStackPx + 4}px 0 #281b12,
-                  ${rightStackPx + 3}px ${rightStackPx + 4}px 0 #281b12,
-                  0 25px 50px -12px rgba(0, 0, 0, 0.85)
-                `,
-              }}
-            >
-              {/* Embossed Gold Stitching along Leather Perimeter */}
-              <div className="absolute inset-1 rounded-lg sm:rounded-xl border border-dashed border-[#8c6743]/40 pointer-events-none z-10" />
+            <LayoutGrid className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+          </button>
+        </div>
 
-              {/* BOOK PAPER SPREAD VIEWPORT */}
-              <div className="relative w-full h-full rounded-md sm:rounded-lg overflow-hidden bg-[#FAF7F2] shadow-inner flex">
-                {/* CENTER BOOK GUTTER / VERTICAL SPINE CREASE */}
-                <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-6 sm:w-10 bg-gradient-to-r from-transparent via-black/35 to-transparent pointer-events-none z-30 mix-blend-multiply" />
-                <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-black/40 pointer-events-none z-30" />
-
-                {/* Left & Right Interactive Click/Tap Turn Zones (when idle) */}
-                {!isFlipping && !isDragging && !isZoomed && (
-                  <>
-                    <div
-                      className="absolute top-0 bottom-0 left-0 w-1/4 z-25 cursor-pointer flex items-center justify-start pl-2 group"
-                      onClick={handlePrev}
-                      title={currentPage > 0 ? 'Click to turn previous page' : ''}
-                    >
-                      {currentPage > 0 && (
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-full bg-black/40 text-white backdrop-blur-xs">
-                          <ChevronLeft className="w-5 h-5 text-[#d8a25e]" />
-                        </div>
-                      )}
-                    </div>
-                    <div
-                      className="absolute top-0 bottom-0 right-0 w-1/4 z-25 cursor-pointer flex items-center justify-end pr-2 group"
-                      onClick={handleNext}
-                      title={currentPage < pages.length - 1 ? 'Click to turn next page' : ''}
-                    >
-                      {currentPage < pages.length - 1 && (
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-full bg-black/40 text-white backdrop-blur-xs">
-                          <ChevronRight className="w-5 h-5 text-[#d8a25e]" />
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-
-                {/* ============================================================ */}
-                {/* CASE A: STATIC VIEW (Idle) */}
-                {/* ============================================================ */}
-                {!isFlipping && !isDragging && (
-                  <div className="relative w-full h-full flex select-none">
-                    {pages[currentPage]?.photo_url ? (
-                      <img
-                        src={pages[currentPage].photo_url}
-                        alt={getPageTitle(currentPage)}
-                        className="w-full h-full object-cover pointer-events-none"
-                      />
-                    ) : (
-                      /* Antique Handwritten Paper Fallback */
-                      <div className="w-full h-full flex bg-[#faf5ec] text-[#2b221a]">
-                        <div className="w-1/2 h-full p-4 sm:p-6 md:p-10 flex flex-col justify-between border-r border-[#3a2f26]/10">
-                          <div>
-                            <div className="text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-[#8c6b4b] mb-1 sm:mb-2">
-                              {pages[currentPage]?.date || `Spread ${currentPage + 1}`}
-                            </div>
-                            <h3 className="font-serif-title text-base sm:text-xl md:text-2xl font-bold text-[#3a281c] mb-2 sm:mb-4">
-                              {pages[currentPage]?.title || `Spread ${currentPage + 1}`}
-                            </h3>
-                            {pages[currentPage]?.lyrics && (
-                              <blockquote className="italic font-serif text-[11px] sm:text-xs md:text-sm text-[#543c2c] border-l-2 border-[#8c6b4b]/40 pl-2.5 sm:pl-3.5 my-2 sm:my-4 leading-relaxed">
-                                &ldquo;{pages[currentPage].lyrics}&rdquo;
-                              </blockquote>
-                            )}
-                          </div>
-                          <div className="text-[9px] sm:text-[10px] font-mono text-[#8c6b4b]/70">
-                            {journal.title} · Page {currentPage * 2 + 1}
-                          </div>
-                        </div>
-
-                        <div className="w-1/2 h-full p-4 sm:p-6 md:p-10 flex flex-col justify-between">
-                          <div className="font-serif text-[11px] sm:text-xs md:text-sm text-[#3b2b20] leading-relaxed whitespace-pre-wrap">
-                            {pages[currentPage]?.content || 'Quiet thoughts and memories gathered under amber lamplight.'}
-                          </div>
-                          <div className="text-[9px] sm:text-[10px] font-mono text-right text-[#8c6b4b]/70">
-                            Page {currentPage * 2 + 2}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Corner Page-Curl Hint Affordance (invites touch) */}
-                    {currentPage < pages.length - 1 && (
-                      <div
-                        className="absolute bottom-0 right-0 w-8 h-8 sm:w-12 sm:h-12 pointer-events-none z-20 bg-gradient-to-tl from-black/25 via-transparent to-transparent corner-curl-hint"
-                        title="Swipe or tap to turn page"
-                      />
-                    )}
-
-                    {/* Paper Texture Overlay */}
-                    <div className="absolute inset-0 bg-[#f7f0df]/10 mix-blend-multiply pointer-events-none" />
-                  </div>
-                )}
-
-                {/* ============================================================ */}
-                {/* CASE B: REAL-TIME TOUCH DRAGGING IN 3D */}
-                {/* ============================================================ */}
-                {isDragging && dragDirection && (
-                  <div className="relative w-full h-full flex select-none">
-                    {/* BASE LEFT HALF */}
-                    <div className="relative w-1/2 h-full overflow-hidden">
-                      <img
-                        src={getPageImage(dragDirection === 'next' ? fromPage : toPage)}
-                        alt="Left base"
-                        className="absolute top-0 left-0 w-[200%] max-w-none h-full object-cover object-left pointer-events-none"
-                      />
-                      {dragDirection === 'prev' && (
-                        <div
-                          className="absolute inset-0 bg-black/40 pointer-events-none"
-                          style={{ opacity: Math.max(0, 1 - Math.abs(dragAngle) / 180) }}
-                        />
-                      )}
-                    </div>
-
-                    {/* BASE RIGHT HALF */}
-                    <div className="relative w-1/2 h-full overflow-hidden">
-                      <img
-                        src={getPageImage(dragDirection === 'next' ? toPage : fromPage)}
-                        alt="Right base"
-                        className="absolute top-0 left-[-100%] w-[200%] max-w-none h-full object-cover object-right pointer-events-none"
-                      />
-                      {dragDirection === 'next' && (
-                        <div
-                          className="absolute inset-0 bg-black/40 pointer-events-none"
-                          style={{ opacity: Math.max(0, (180 - Math.abs(dragAngle)) / 180) }}
-                        />
-                      )}
-                    </div>
-
-                    {/* 3D TURNING LEAF ROTATING IN REAL-TIME */}
-                    <div
-                      className="book-leaf-turning"
-                      style={{
-                        transform: `rotateY(${dragAngle}deg)`,
-                        transition: 'none',
-                        boxShadow:
-                          dragAngle < -90
-                            ? `${Math.abs(dragAngle + 90) * 0.25}px 8px 30px rgba(25, 15, 8, 0.4)`
-                            : `-${Math.abs(dragAngle) * 0.25}px 8px 30px rgba(25, 15, 8, 0.4)`,
-                      }}
-                    >
-                      {/* FRONT FACE: Current right page */}
-                      <div className="book-leaf-front">
-                        <img
-                          src={getPageImage(dragDirection === 'next' ? fromPage : toPage)}
-                          alt="Turning front"
-                          className="absolute top-0 left-[-100%] w-[200%] max-w-none h-full object-cover object-right pointer-events-none"
-                        />
-                        <div
-                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-black/35 pointer-events-none"
-                          style={{ opacity: Math.min(1, Math.abs(dragAngle) / 90) }}
-                        />
-                      </div>
-
-                      {/* BACK FACE: Destination left page */}
-                      <div className="book-leaf-back">
-                        <img
-                          src={getPageImage(dragDirection === 'next' ? toPage : fromPage)}
-                          alt="Turning back"
-                          className="absolute top-0 left-0 w-[200%] max-w-none h-full object-cover object-left pointer-events-none"
-                        />
-                        <div
-                          className="absolute inset-0 bg-gradient-to-r from-black/35 via-white/20 to-transparent pointer-events-none"
-                          style={{ opacity: Math.min(1, Math.abs(dragAngle + 180) / 90) }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* ============================================================ */}
-                {/* CASE C: PROGRAMMATIC 3D FLIP FORWARD (Next Spread) */}
-                {/* ============================================================ */}
-                {isFlipping && flipDirection === 'next' && (
-                  <div className="relative w-full h-full flex select-none">
-                    {/* BASE LEFT HALF: fromPage Left */}
-                    <div className="relative w-1/2 h-full overflow-hidden">
-                      <img
-                        src={getPageImage(fromPage)}
-                        alt="Left base current"
-                        className="absolute top-0 left-0 w-[200%] max-w-none h-full object-cover object-left pointer-events-none"
-                      />
-                    </div>
-
-                    {/* BASE RIGHT HALF: toPage Right with shadow */}
-                    <div className="relative w-1/2 h-full overflow-hidden">
-                      <img
-                        src={getPageImage(toPage)}
-                        alt="Right base next"
-                        className="absolute top-0 left-[-100%] w-[200%] max-w-none h-full object-cover object-right pointer-events-none"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent anim-base-shadow pointer-events-none" />
-                    </div>
-
-                    {/* 3D TURNING LEAF (0deg -> -180deg) */}
-                    <div className="book-leaf-turning anim-flip-forward">
-                      {/* FRONT FACE: fromPage Right */}
-                      <div className="book-leaf-front">
-                        <img
-                          src={getPageImage(fromPage)}
-                          alt="Turning front"
-                          className="absolute top-0 left-[-100%] w-[200%] max-w-none h-full object-cover object-right pointer-events-none"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-black/35 anim-sheen-forward pointer-events-none" />
-                      </div>
-
-                      {/* BACK FACE: toPage Left */}
-                      <div className="book-leaf-back">
-                        <img
-                          src={getPageImage(toPage)}
-                          alt="Turning back"
-                          className="absolute top-0 left-0 w-[200%] max-w-none h-full object-cover object-left pointer-events-none"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-r from-black/35 via-white/30 to-transparent anim-sheen-backward pointer-events-none" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* ============================================================ */}
-                {/* CASE D: PROGRAMMATIC 3D FLIP BACKWARD (Previous Spread) */}
-                {/* ============================================================ */}
-                {isFlipping && flipDirection === 'prev' && (
-                  <div className="relative w-full h-full flex select-none">
-                    {/* BASE LEFT HALF: toPage Left with shadow */}
-                    <div className="relative w-1/2 h-full overflow-hidden">
-                      <img
-                        src={getPageImage(toPage)}
-                        alt="Left base prev"
-                        className="absolute top-0 left-0 w-[200%] max-w-none h-full object-cover object-left pointer-events-none"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-l from-black/50 via-black/20 to-transparent anim-base-shadow pointer-events-none" />
-                    </div>
-
-                    {/* BASE RIGHT HALF: fromPage Right */}
-                    <div className="relative w-1/2 h-full overflow-hidden">
-                      <img
-                        src={getPageImage(fromPage)}
-                        alt="Right base current"
-                        className="absolute top-0 left-[-100%] w-[200%] max-w-none h-full object-cover object-right pointer-events-none"
-                      />
-                    </div>
-
-                    {/* 3D TURNING LEAF (-180deg -> 0deg) */}
-                    <div className="book-leaf-turning anim-flip-backward">
-                      {/* BACK FACE: fromPage Left */}
-                      <div className="book-leaf-back">
-                        <img
-                          src={getPageImage(fromPage)}
-                          alt="Turning back"
-                          className="absolute top-0 left-0 w-[200%] max-w-none h-full object-cover object-left pointer-events-none"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-l from-transparent via-white/40 to-black/35 anim-sheen-backward pointer-events-none" />
-                      </div>
-
-                      {/* FRONT FACE: toPage Right */}
-                      <div className="book-leaf-front">
-                        <img
-                          src={getPageImage(toPage)}
-                          alt="Turning front"
-                          className="absolute top-0 left-[-100%] w-[200%] max-w-none h-full object-cover object-right pointer-events-none"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-r from-black/35 via-white/30 to-transparent anim-sheen-forward pointer-events-none" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* ============================================================ */}
-          {/* MOBILE DEDICATED THUMB CONTROLS (Bottom Center Pill) */}
-          {/* ============================================================ */}
-          <div className="flex sm:hidden items-center justify-between gap-2.5 px-3 py-2 mt-2 w-full max-w-sm mx-auto z-40">
-            <button
-              onClick={handlePrev}
-              disabled={currentPage <= 0 || isFlipping || isDragging}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#2b1f16]/95 border border-[#543e2d] text-[#f5ebd9] active:scale-95 disabled:opacity-30 disabled:active:scale-100 font-medium text-xs shadow-lg transition-all"
-            >
-              <ChevronLeft className="w-4 h-4 text-[#d8a25e]" />
-              <span>Prev</span>
-            </button>
-
-            <button
-              onClick={() => setShowThumbnails((v) => !v)}
-              className={`px-3.5 py-2.5 rounded-xl border text-xs font-mono font-medium flex items-center gap-1 active:scale-95 transition-all shadow-md ${
-                showThumbnails
-                  ? 'bg-[#d8a25e] text-[#241a13] border-[#d8a25e]'
-                  : 'bg-[#34271c]/95 border-[#5c4431] text-[#e3d3bd]'
-              }`}
-            >
-              <span>{currentPage + 1}/{pages.length}</span>
-            </button>
-
-            <button
-              onClick={handleNext}
-              disabled={currentPage >= pages.length - 1 || isFlipping || isDragging}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#2b1f16]/95 border border-[#543e2d] text-[#f5ebd9] active:scale-95 disabled:opacity-30 disabled:active:scale-100 font-medium text-xs shadow-lg transition-all"
-            >
-              <span>Next</span>
-              <ChevronRight className="w-4 h-4 text-[#d8a25e]" />
-            </button>
+        {/* Center: Title & Page Count (Exact Paper for iOS Typography) */}
+        <div className="text-center">
+          <h1 className="text-base sm:text-xl font-bold tracking-tight text-white capitalize leading-tight">
+            {journal.title || 'Journal'}
+          </h1>
+          <div className="flex items-center justify-center gap-1.5 text-xs text-white/70 font-medium tracking-wide mt-0.5">
+            <PenTool className="w-3 h-3 text-white/60" />
+            <span>{pages.length} Pages</span>
           </div>
         </div>
 
+        {/* Right: Search, Menu & Close (Paper for iOS Image 1 & 2) */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={() => setEditJournalModalOpen(true, journal.id)}
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-white/20 bg-white/10 hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center text-white/90 shadow-sm"
+            title="Search & Journal Details"
+          >
+            <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+          </button>
+
+          <button
+            onClick={() => setEditJournalModalOpen(true, journal.id)}
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-white/20 bg-white/10 hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center text-white/90 shadow-sm"
+            title="Journal Menu"
+          >
+            <Menu className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+          </button>
+
+          <button
+            onClick={() => setSelectedJournalId(null)}
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-white/20 bg-white/10 hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center text-white/90 shadow-sm"
+            title="Close (Esc)"
+          >
+            <X className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+          </button>
+        </div>
+      </header>
+
+      {/* ============================================================ */}
+      {/* 2. THE 3D FANNED OPEN SKETCHBOOK (Signature Paper for iOS) */}
+      {/* ============================================================ */}
+      <main className="flex-1 w-full flex items-center justify-center relative px-2 sm:px-6 overflow-hidden min-h-0">
+        {/* Soft Ambient Studio Downlight */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(255,255,255,0.06)_0%,transparent_70%)] pointer-events-none" />
+
         {/* ============================================================ */}
-        {/* 3. BOTTOM THUMBNAIL RIBBON (Desktop Always, Mobile Toggle) */}
+        {/* 3D BOOK STAGE CONTAINER WITH PERSPECTIVE */}
         {/* ============================================================ */}
         <div
-          className={`px-3 sm:px-6 py-2 sm:py-3 border-t border-[#3d2e22] bg-[#1a1410] flex-shrink-0 transition-all ${
-            showThumbnails || !isMobile ? 'block' : 'hidden'
-          }`}
+          ref={containerRef}
+          className="book-perspective relative w-full max-w-4xl h-[62vh] sm:h-[68vh] flex items-center justify-center select-none"
+          onTouchStart={(e) => handlePointerStart(e.touches[0].clientX, e.touches[0].clientY)}
+          onTouchMove={(e) => handlePointerMove(e.touches[0].clientX, e.touches[0].clientY)}
+          onTouchEnd={(e) => handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY)}
+          onMouseDown={(e) => handlePointerStart(e.clientX, e.clientY)}
+          onMouseMove={(e) => handlePointerMove(e.clientX, e.clientY)}
+          onMouseUp={(e) => handlePointerEnd(e.clientX, e.clientY)}
         >
-          <div className="flex items-center justify-between gap-2 sm:gap-4">
-            <div className="flex items-center gap-1.5 text-xs text-[#9b8973] font-mono whitespace-nowrap hidden sm:flex">
-              <span>Swipe or:</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-[#2b1f16] border border-[#483526] text-[10px] text-[#e0cfba]">
-                ←
-              </kbd>
-              <kbd className="px-1.5 py-0.5 rounded bg-[#2b1f16] border border-[#483526] text-[10px] text-[#e0cfba]">
-                →
-              </kbd>
-            </div>
+          {/* Ambient Ground Shadow under the fanned book */}
+          <div className="absolute -bottom-8 w-[90%] h-14 bg-black/75 blur-2xl rounded-full pointer-events-none" />
 
-            {/* Interactive Thumbnails Ribbon */}
-            <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto py-1 mx-auto scrollbar-none max-w-2xl">
-              {pages.map((p, idx) => {
-                const isActive = currentPage === idx;
-                const imgSrc = p.photo_url || p.sketch_data;
-                return (
-                  <button
-                    key={p.id || idx}
-                    onClick={() => turnPage(idx)}
-                    disabled={isFlipping || isDragging}
-                    className={`group relative flex-shrink-0 w-12 sm:w-16 md:w-20 aspect-[1.38/1] rounded-md overflow-hidden border-2 transition-all duration-200 ${
-                      isActive
-                        ? 'border-[#d8a25e] ring-2 ring-[#d8a25e]/40 scale-105 shadow-md'
-                        : 'border-[#423122] opacity-60 hover:opacity-100 hover:border-[#8c6743]'
-                    }`}
-                    title={`Jump to Spread ${idx + 1}: ${p.title}`}
-                  >
-                    {imgSrc ? (
-                      <img
-                        src={imgSrc}
-                        alt={`Page ${idx + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-[#f2ebd9] flex items-center justify-center text-[9px] text-[#3a281c] font-serif font-bold p-1 text-center truncate">
-                        #{idx + 1}
-                      </div>
-                    )}
-                    <div
-                      className={`absolute bottom-0 left-0 right-0 py-0.5 text-center text-[8px] sm:text-[9px] font-mono font-bold ${
-                        isActive ? 'bg-[#d8a25e] text-[#241a13]' : 'bg-black/60 text-[#d4c5b3]'
-                      }`}
-                    >
-                      #{idx + 1}
+          {/* ============================================================ */}
+          {/* LEFT FANNED STACK (Previous Spreads fanned in 3D perspective) */}
+          {/* ============================================================ */}
+          {leftFannedIndices.map((pageIdx) => {
+            const offset = currentPage - pageIdx; // 1 = right behind, 2 = further behind, 3 = furthest
+            const img = getPageImage(pageIdx);
+            return (
+              <div
+                key={`left-fan-${pageIdx}`}
+                onClick={() => turnPage(pageIdx)}
+                className="paper-fan-item absolute w-[86vw] max-w-3xl aspect-[1.42/1] rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer"
+                style={{
+                  transform: `translateX(-${offset * 36 + 14}px) translateZ(-${offset * 48}px) rotateY(-${
+                    8 + offset * 3.5
+                  }deg)`,
+                  zIndex: 10 - offset,
+                  boxShadow: `-${offset * 8}px 18px 40px rgba(0,0,0,0.5)`,
+                }}
+                title={`Jump to Spread ${pageIdx + 1}`}
+              >
+                <img
+                  src={img}
+                  alt={`Spread ${pageIdx + 1}`}
+                  className="w-full h-full object-cover pointer-events-none"
+                />
+                {/* Ambient depth shadow that darkens with distance */}
+                <div
+                  className="absolute inset-0 bg-black pointer-events-none transition-opacity"
+                  style={{ opacity: 0.14 + offset * 0.15 }}
+                />
+              </div>
+            );
+          })}
+
+          {/* ============================================================ */}
+          {/* RIGHT FANNED STACK (Upcoming Spreads fanned in 3D perspective) */}
+          {/* ============================================================ */}
+          {rightFannedIndices.map((pageIdx) => {
+            const offset = pageIdx - currentPage; // 1 = right behind, 2 = further behind, 3 = furthest
+            const img = getPageImage(pageIdx);
+            return (
+              <div
+                key={`right-fan-${pageIdx}`}
+                onClick={() => turnPage(pageIdx)}
+                className="paper-fan-item absolute w-[86vw] max-w-3xl aspect-[1.42/1] rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer"
+                style={{
+                  transform: `translateX(${offset * 36 + 14}px) translateZ(-${offset * 48}px) rotateY(${
+                    8 + offset * 3.5
+                  }deg)`,
+                  zIndex: 10 - offset,
+                  boxShadow: `${offset * 8}px 18px 40px rgba(0,0,0,0.5)`,
+                }}
+                title={`Jump to Spread ${pageIdx + 1}`}
+              >
+                <img
+                  src={img}
+                  alt={`Spread ${pageIdx + 1}`}
+                  className="w-full h-full object-cover pointer-events-none"
+                />
+                {/* Ambient depth shadow that darkens with distance */}
+                <div
+                  className="absolute inset-0 bg-black pointer-events-none transition-opacity"
+                  style={{ opacity: 0.14 + offset * 0.15 }}
+                />
+              </div>
+            );
+          })}
+
+          {/* ============================================================ */}
+          {/* ACTIVE CENTER SPREAD CONTAINER */}
+          {/* ============================================================ */}
+          <div
+            className="book-spread-container relative w-[86vw] max-w-3xl aspect-[1.42/1] rounded-xl sm:rounded-2xl bg-[#faf5ec] shadow-[0_28px_65px_-12px_rgba(0,0,0,0.75)] z-20 overflow-hidden"
+          >
+            {/* Center spine seam depression */}
+            <div className="paper-spine-crease" />
+
+            {/* Left & Right Interactive Click/Tap Turn Zones */}
+            {!isFlipping && !isDragging && (
+              <>
+                <div
+                  className="absolute top-0 bottom-0 left-0 w-1/4 z-30 cursor-pointer flex items-center justify-start pl-3 group"
+                  onClick={handlePrev}
+                  title={currentPage > 0 ? 'Turn previous page (←)' : ''}
+                >
+                  {currentPage > 0 && (
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-full bg-black/40 text-white backdrop-blur-xs">
+                      <ChevronLeft className="w-5 h-5" />
                     </div>
-                  </button>
-                );
-              })}
+                  )}
+                </div>
+                <div
+                  className="absolute top-0 bottom-0 right-0 w-1/4 z-30 cursor-pointer flex items-center justify-end pr-3 group"
+                  onClick={handleNext}
+                  title={currentPage < pages.length - 1 ? 'Turn next page (→)' : ''}
+                >
+                  {currentPage < pages.length - 1 && (
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-full bg-black/40 text-white backdrop-blur-xs">
+                      <ChevronRight className="w-5 h-5" />
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ============================================================ */}
+            {/* VIEW A: STATIC RESTING VIEW (Idle) */}
+            {/* ============================================================ */}
+            {!isFlipping && !isDragging && (
+              <div className="relative w-full h-full flex select-none">
+                <img
+                  src={getPageImage(currentPage)}
+                  alt={getPageTitle(currentPage)}
+                  className="w-full h-full object-cover pointer-events-none"
+                />
+                {/* Subtle paper fiber texture overlay */}
+                <div className="absolute inset-0 bg-[#f7f0df]/8 mix-blend-multiply pointer-events-none" />
+              </div>
+            )}
+
+            {/* ============================================================ */}
+            {/* VIEW B: REAL-TIME TOUCH DRAGGING IN 3D */}
+            {/* ============================================================ */}
+            {isDragging && dragDirection && (
+              <div className="relative w-full h-full flex select-none">
+                {/* BASE LEFT HALF */}
+                <div className="relative w-1/2 h-full overflow-hidden">
+                  <img
+                    src={getPageImage(dragDirection === 'next' ? fromPage : toPage)}
+                    alt="Left base"
+                    className="absolute top-0 left-0 w-[200%] max-w-none h-full object-cover object-left pointer-events-none"
+                  />
+                  {dragDirection === 'prev' && (
+                    <div
+                      className="absolute inset-0 bg-black/40 pointer-events-none"
+                      style={{ opacity: Math.max(0, 1 - Math.abs(dragAngle) / 180) }}
+                    />
+                  )}
+                </div>
+
+                {/* BASE RIGHT HALF */}
+                <div className="relative w-1/2 h-full overflow-hidden">
+                  <img
+                    src={getPageImage(dragDirection === 'next' ? toPage : fromPage)}
+                    alt="Right base"
+                    className="absolute top-0 left-[-100%] w-[200%] max-w-none h-full object-cover object-right pointer-events-none"
+                  />
+                  {dragDirection === 'next' && (
+                    <div
+                      className="absolute inset-0 bg-black/40 pointer-events-none"
+                      style={{ opacity: Math.max(0, (180 - Math.abs(dragAngle)) / 180) }}
+                    />
+                  )}
+                </div>
+
+                {/* 3D TURNING LEAF ROTATING IN REAL-TIME */}
+                <div
+                  className="book-leaf-turning"
+                  style={{
+                    transform: `rotateY(${dragAngle}deg)`,
+                    transition: 'none',
+                    boxShadow:
+                      dragAngle < -90
+                        ? `${Math.abs(dragAngle + 90) * 0.25}px 8px 30px rgba(25, 15, 8, 0.4)`
+                        : `-${Math.abs(dragAngle) * 0.25}px 8px 30px rgba(25, 15, 8, 0.4)`,
+                  }}
+                >
+                  {/* FRONT FACE: Current right page */}
+                  <div className="book-leaf-front">
+                    <img
+                      src={getPageImage(dragDirection === 'next' ? fromPage : toPage)}
+                      alt="Turning front"
+                      className="absolute top-0 left-[-100%] w-[200%] max-w-none h-full object-cover object-right pointer-events-none"
+                    />
+                    <div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-black/35 pointer-events-none"
+                      style={{ opacity: Math.min(1, Math.abs(dragAngle) / 90) }}
+                    />
+                  </div>
+
+                  {/* BACK FACE: Destination left page */}
+                  <div className="book-leaf-back">
+                    <img
+                      src={getPageImage(dragDirection === 'next' ? toPage : fromPage)}
+                      alt="Turning back"
+                      className="absolute top-0 left-0 w-[200%] max-w-none h-full object-cover object-left pointer-events-none"
+                    />
+                    <div
+                      className="absolute inset-0 bg-gradient-to-r from-black/35 via-white/20 to-transparent pointer-events-none"
+                      style={{ opacity: Math.min(1, Math.abs(dragAngle + 180) / 90) }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================ */}
+            {/* VIEW C: PROGRAMMATIC 3D FLIP FORWARD (Next Spread) */}
+            {/* ============================================================ */}
+            {isFlipping && flipDirection === 'next' && (
+              <div className="relative w-full h-full flex select-none">
+                {/* BASE LEFT HALF */}
+                <div className="relative w-1/2 h-full overflow-hidden">
+                  <img
+                    src={getPageImage(fromPage)}
+                    alt="Left base current"
+                    className="absolute top-0 left-0 w-[200%] max-w-none h-full object-cover object-left pointer-events-none"
+                  />
+                </div>
+
+                {/* BASE RIGHT HALF: With dissolving shadow */}
+                <div className="relative w-1/2 h-full overflow-hidden">
+                  <img
+                    src={getPageImage(toPage)}
+                    alt="Right base next"
+                    className="absolute top-0 left-[-100%] w-[200%] max-w-none h-full object-cover object-right pointer-events-none"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent anim-base-shadow pointer-events-none" />
+                </div>
+
+                {/* 3D TURNING LEAF (0deg -> -180deg) */}
+                <div className="book-leaf-turning anim-flip-forward">
+                  {/* FRONT FACE */}
+                  <div className="book-leaf-front">
+                    <img
+                      src={getPageImage(fromPage)}
+                      alt="Turning front"
+                      className="absolute top-0 left-[-100%] w-[200%] max-w-none h-full object-cover object-right pointer-events-none"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-black/35 anim-sheen-forward pointer-events-none" />
+                  </div>
+
+                  {/* BACK FACE */}
+                  <div className="book-leaf-back">
+                    <img
+                      src={getPageImage(toPage)}
+                      alt="Turning back"
+                      className="absolute top-0 left-0 w-[200%] max-w-none h-full object-cover object-left pointer-events-none"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/35 via-white/30 to-transparent anim-sheen-backward pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================ */}
+            {/* VIEW D: PROGRAMMATIC 3D FLIP BACKWARD (Previous Spread) */}
+            {/* ============================================================ */}
+            {isFlipping && flipDirection === 'prev' && (
+              <div className="relative w-full h-full flex select-none">
+                {/* BASE LEFT HALF */}
+                <div className="relative w-1/2 h-full overflow-hidden">
+                  <img
+                    src={getPageImage(toPage)}
+                    alt="Left base destination"
+                    className="absolute top-0 left-0 w-[200%] max-w-none h-full object-cover object-left pointer-events-none"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-l from-black/50 via-black/20 to-transparent anim-base-shadow pointer-events-none" />
+                </div>
+
+                {/* BASE RIGHT HALF */}
+                <div className="relative w-1/2 h-full overflow-hidden">
+                  <img
+                    src={getPageImage(fromPage)}
+                    alt="Right base current"
+                    className="absolute top-0 left-[-100%] w-[200%] max-w-none h-full object-cover object-right pointer-events-none"
+                  />
+                </div>
+
+                {/* 3D TURNING LEAF (-180deg -> 0deg) */}
+                <div className="book-leaf-turning anim-flip-backward">
+                  {/* BACK FACE */}
+                  <div className="book-leaf-back">
+                    <img
+                      src={getPageImage(fromPage)}
+                      alt="Turning back"
+                      className="absolute top-0 left-0 w-[200%] max-w-none h-full object-cover object-left pointer-events-none"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-l from-transparent via-white/40 to-black/35 anim-sheen-backward pointer-events-none" />
+                  </div>
+
+                  {/* FRONT FACE */}
+                  <div className="book-leaf-front">
+                    <img
+                      src={getPageImage(toPage)}
+                      alt="Turning front"
+                      className="absolute top-0 left-[-100%] w-[200%] max-w-none h-full object-cover object-right pointer-events-none"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/35 via-white/30 to-transparent anim-sheen-forward pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      {/* ============================================================ */}
+      {/* 3. PAPER FOR iOS BOTTOM ACTION BAR (The 4 Circular Buttons) */}
+      {/* ============================================================ */}
+      <footer className="w-full pb-[max(1.2rem,env(safe-area-inset-bottom))] pt-2 flex items-center justify-center z-40 flex-shrink-0">
+        <div className="flex items-center gap-4 sm:gap-6">
+          {/* Button 1: More / Details / Edit Journal */}
+          <button
+            onClick={() => setEditJournalModalOpen(true, journal.id)}
+            className="paper-action-btn"
+            title="Journal Options & Edit"
+          >
+            <MoreHorizontal className="w-5 h-5 text-[#2b2b2b]" />
+          </button>
+
+          {/* Button 2: Share / Export Spread */}
+          <button
+            onClick={handleShareSpread}
+            className="paper-action-btn"
+            title="Share / Save Spread Image"
+          >
+            <Share className="w-4.5 h-4.5 text-[#2b2b2b]" />
+          </button>
+
+          {/* Button 3: Delete Spread */}
+          <button
+            onClick={() => setIsDeleteConfirmOpen(true)}
+            className="paper-action-btn hover:text-red-600"
+            title="Delete this Spread"
+          >
+            <Trash2 className="w-4.5 h-4.5 text-[#2b2b2b] hover:text-red-600 transition-colors" />
+          </button>
+
+          {/* Button 4: Add Spread / New Page */}
+          <button
+            onClick={() => setIsAddPageModalOpen(true)}
+            className="paper-action-btn"
+            title="Add New Spread (Sketch or Photo)"
+          >
+            <Plus className="w-5 h-5 text-[#2b2b2b]" />
+          </button>
+        </div>
+      </footer>
+
+      {/* ============================================================ */}
+      {/* 4. GRID VIEW OVERVIEW MODAL (Tapping ⊞ in top left) */}
+      {/* ============================================================ */}
+      {isGridViewOpen && (
+        <div
+          className="absolute inset-0 z-50 bg-[#1e2233]/96 backdrop-blur-xl p-4 sm:p-8 flex flex-col justify-between animate-in fade-in duration-200"
+          onClick={() => setIsGridViewOpen(false)}
+        >
+          <div className="flex items-center justify-between max-w-5xl w-full mx-auto pb-4 border-b border-white/10">
+            <div>
+              <h2 className="text-xl font-bold text-white capitalize">{journal.title}</h2>
+              <p className="text-xs text-white/60">Tap any spread to open</p>
+            </div>
+            <button
+              onClick={() => setIsGridViewOpen(false)}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Grid of Spreads */}
+          <div
+            className="flex-1 overflow-y-auto py-6 max-w-5xl w-full mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {pages.map((p, idx) => {
+              const isActive = currentPage === idx;
+              return (
+                <div
+                  key={p.id || idx}
+                  onClick={() => {
+                    setCurrentPage(idx);
+                    setActiveJournalPage(idx);
+                    setIsGridViewOpen(false);
+                  }}
+                  className={`group relative aspect-[1.42/1] rounded-xl overflow-hidden cursor-pointer border-2 transition-all duration-200 hover:scale-[1.04] shadow-xl ${
+                    isActive ? 'border-white ring-4 ring-white/30 scale-[1.02]' : 'border-white/20 hover:border-white/60'
+                  }`}
+                >
+                  <img
+                    src={getPageImage(idx)}
+                    alt={p.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-2.5">
+                    <span className="text-[11px] font-mono font-bold text-white">
+                      #{idx + 1} {p.title}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="text-center pt-2">
+            <button
+              onClick={() => {
+                setIsGridViewOpen(false);
+                setIsAddPageModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-[#1e2233] font-semibold text-xs shadow-lg hover:bg-neutral-100 transition-transform active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add New Spread</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* 5. ADD NEW SPREAD MODAL (PaperCanvas Drawing or Photo URL) */}
+      {/* ============================================================ */}
+      {isAddPageModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in"
+          onClick={() => setIsAddPageModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-2xl bg-[#24293c] border border-white/20 rounded-2xl shadow-2xl p-5 text-white flex flex-col max-h-[92vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setAddMode('draw')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                    addMode === 'draw'
+                      ? 'bg-white text-[#24293c]'
+                      : 'bg-white/10 text-white/80 hover:bg-white/20'
+                  }`}
+                >
+                  <Paintbrush className="w-3.5 h-3.5" />
+                  <span>Hand Draw Canvas</span>
+                </button>
+                <button
+                  onClick={() => setAddMode('photo')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                    addMode === 'photo'
+                      ? 'bg-white text-[#24293c]'
+                      : 'bg-white/10 text-white/80 hover:bg-white/20'
+                  }`}
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Photo / Image URL</span>
+                </button>
+              </div>
+              <button
+                onClick={() => setIsAddPageModalOpen(false)}
+                className="p-1 rounded-full hover:bg-white/10 text-white/70 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <div className="text-right text-[11px] sm:text-xs text-[#9b8973] font-mono whitespace-nowrap hidden sm:block">
-              {currentPage + 1}/{pages.length} Spreads
+            <div className="py-3 flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Spread Title (e.g. Midnight Sketches)"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                className="flex-1 px-3 py-1.5 rounded-lg bg-black/30 border border-white/15 text-xs text-white placeholder-white/40 focus:outline-none focus:border-white/50"
+              />
+            </div>
+
+            {addMode === 'draw' ? (
+              <div className="flex-1 min-h-[340px] rounded-xl overflow-hidden border border-white/15">
+                <PaperCanvas onSave={handleSaveDrawnPage} />
+              </div>
+            ) : (
+              <div className="py-4 space-y-3">
+                <p className="text-xs text-white/70">
+                  Enter an image URL to insert as a new double-spread sketchbook page:
+                </p>
+                <input
+                  type="text"
+                  placeholder="https://images.unsplash.com/... or /journal/page-1.jpg"
+                  value={newPhotoUrl}
+                  onChange={(e) => setNewPhotoUrl(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/15 text-xs text-white placeholder-white/40 focus:outline-none focus:border-white/50"
+                />
+                {newPhotoUrl && (
+                  <div className="aspect-[1.42/1] max-h-48 rounded-lg overflow-hidden border border-white/20 bg-black/40">
+                    <img src={newPhotoUrl} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="pt-2 flex justify-end">
+                  <button
+                    onClick={handleSavePhotoPage}
+                    disabled={!newPhotoUrl.trim()}
+                    className="px-5 py-2 rounded-full bg-white text-[#24293c] font-semibold text-xs disabled:opacity-40 hover:bg-neutral-100 active:scale-95 transition-all shadow-md"
+                  >
+                    Add Spread
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* 6. DELETE CONFIRMATION MODAL */}
+      {/* ============================================================ */}
+      {isDeleteConfirmOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in"
+          onClick={() => setIsDeleteConfirmOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm bg-[#24293c] border border-white/20 rounded-2xl p-6 text-white text-center shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center mx-auto mb-3">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-white mb-1">Delete this spread?</h3>
+            <p className="text-xs text-white/70 mb-5">
+              This will remove Spread #{currentPage + 1} from {journal.title}.
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="flex-1 py-2 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeletePage}
+                className="flex-1 py-2 rounded-full bg-red-600 hover:bg-red-500 text-xs font-semibold text-white shadow-lg transition-all"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
